@@ -1,0 +1,62 @@
+name: tests
+
+on:
+  workflow_run:
+    workflows:
+      - "docker"
+    types:
+      - completed
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Check GitHub Credentials
+        run: |
+          echo "Git Remotes: "
+          echo "$(git remote -v)"
+          echo "GITHUB_USER: ${{ github.actor }}"
+          echo "GITHUB_REPOSITORY: ${{ github.repository }}"
+          echo "GITHUB_SHA: ${{ github.sha }}"
+          echo "GITHUB_REF: ${{ github.ref }}"
+
+      - name: Build Tests Image
+        if: ${{ env.SKIP_BUILD != 'true' }}
+        run: make build-tests
+
+      - name: Get Python Version from Docker Container
+        id: get_python_version
+        run: |
+          python_version=$(make test-py-version NOTTY=true USE_VOL=false USE_USR=false)
+          echo "Python version in container: $python_version"
+          echo "default_python_version=$python_version" >> $GITHUB_ENV
+
+      - name: Lint with Default ${{ env.default_python_version }}
+        run: |
+          make nox ARGS="-s lint_default_version" \
+              NOTTY=true \
+              USE_VOL=false \
+              USE_USR=false
+
+      - name: Run Tests with Default ${{ env.default_python_version }}
+        run: |
+          make nox ARGS="-s test_default_version" \
+              NOTTY=true \
+              USE_VOL=false \
+              USE_USR=false
+
+      - name: Build Final (Tests) Image
+        if: ${{ env.SKIP_BUILD != 'true' }}
+        run: make build-final
+
+      - name: Run Tests for Multiple Python Versions
+        run: |
+          make nox ARGS="-s test_all_versions" \
+              NOTTY=true \
+              USE_VOL=false \
+              USE_USR=false \
+              USE_FNL=true

@@ -1,0 +1,17 @@
+{
+  "_checkout": null,
+  "_output_dir": "/data",
+  "_repo_dir": "/home/jovyan/.cookiecutters/cookiecutter-hypy",
+  "_template": "gh:diogenesanalytics/cookiecutter-hypy",
+  "author": "Diogenes Analytics",
+  "copyright_year": "2026",
+  "description": "Secure storage of sensitive files in Git repositories.",
+  "development_status": "Development Status :: 1 - Planning",
+  "email": "diogenesanalytics@gmail.com",
+  "friendly_name": "SecureRepo",
+  "github_user": "DiogenesAnalytics",
+  "license": "MIT",
+  "package_name": "secrepo",
+  "project_name": "secrepo",
+  "version": "0.0.0"
+}
