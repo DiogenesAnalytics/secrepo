@@ -8,6 +8,10 @@ authors = [
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.9,<3.13"
+dependencies = [
+    "click>=8.0",
+    "pyyaml>=6.0"
+]
 homepage = "https://github.com/DiogenesAnalytics/secrepo"
 repository = "https://github.com/DiogenesAnalytics/secrepo"
 classifiers = [
@@ -16,6 +20,9 @@ classifiers = [
 
 [project.urls]
 Changelog = "https://github.com/DiogenesAnalytics/secrepo/releases"
+
+[project.scripts]
+secrepo = "secrepo.cli:main"
 
 [tool.poetry.group.dev]
 optional = true
@@ -41,6 +48,7 @@ pre-commit-hooks = ">=4.1.0"
 pytest = ">=6.2.5"
 pyupgrade = ">=2.29.1"
 typeguard = ">=2.13.3"
+types-PyYAML = "^6.0"
 xdoctest = {extras = ["colors"], version = ">=0.15.10"}
 myst-parser = {version = ">=0.16.1"}
 
@@ -56,12 +64,15 @@ source = ["secrepo", "tests"]
 show_missing = true
 fail_under = 100
 
+[tool.black]
+target-version = ["py39"]
+
 [tool.isort]
 profile = "black"
 force_single_line = true
-lines_after_imports = 2
 
 [tool.mypy]
+ignore_missing_imports = true
 strict = true
 warn_unreachable = true
 pretty = true
