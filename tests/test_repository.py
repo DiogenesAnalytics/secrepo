@@ -6,6 +6,7 @@ import pytest
 
 from secrepo.config import CONFIG_FILENAME
 from secrepo.config import CONFIG_VERSION
+from secrepo.config import SECREPO_DIRNAME
 from secrepo.config import SecureRepoConfig
 from secrepo.repository import FileState
 from secrepo.repository import SecureRepo
@@ -21,7 +22,17 @@ def test_init(tmp_path: Path) -> None:
     assert repo.root == tmp_path
     assert repo.config.version == CONFIG_VERSION
     assert repo.config.protected == ()
-    assert (tmp_path / CONFIG_FILENAME).exists()
+    assert (tmp_path / SECREPO_DIRNAME / CONFIG_FILENAME).exists()
+
+
+def test_init_creates_secrepo_directory(tmp_path: Path) -> None:
+    """Initialize the SecureRepo metadata directory."""
+    init_repository(tmp_path)
+
+    secrepo_dir = tmp_path / SECREPO_DIRNAME
+
+    assert secrepo_dir.is_dir()
+    assert (secrepo_dir / CONFIG_FILENAME).is_file()
 
 
 def test_init_rejects_existing_configuration(tmp_path: Path) -> None:

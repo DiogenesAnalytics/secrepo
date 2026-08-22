@@ -6,7 +6,8 @@ from typing import Tuple
 
 import yaml
 
-CONFIG_FILENAME = "secrepo.yaml"
+SECREPO_DIRNAME = ".secrepo"
+CONFIG_FILENAME = "protected.yaml"
 CONFIG_VERSION = 1
 
 

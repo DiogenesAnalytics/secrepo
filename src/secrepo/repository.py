@@ -8,6 +8,7 @@ from typing import Optional
 
 from .config import CONFIG_FILENAME
 from .config import CONFIG_VERSION
+from .config import SECREPO_DIRNAME
 from .config import SecureRepoConfig
 from .config import load_config
 from .config import save_config
@@ -123,7 +124,7 @@ def discover_repository(path: Optional[Path] = None) -> SecureRepo:
     current = (path or Path.cwd()).resolve()
 
     for directory in (current, *current.parents):
-        config_path = directory / CONFIG_FILENAME
+        config_path = directory / SECREPO_DIRNAME / CONFIG_FILENAME
 
         if config_path.exists():
             return SecureRepo(
@@ -132,7 +133,8 @@ def discover_repository(path: Optional[Path] = None) -> SecureRepo:
             )
 
     raise FileNotFoundError(
-        f"Could not find {CONFIG_FILENAME} in {current} " "or any parent directory."
+        f"Could not find {SECREPO_DIRNAME}/{CONFIG_FILENAME} "
+        f"in {current} or any parent directory."
     )
 
 
@@ -156,10 +158,15 @@ def init_repository(path: Optional[Path] = None) -> SecureRepo:
         If a SecureRepo configuration already exists.
     """
     root = (path or Path.cwd()).resolve()
-    config_path = root / CONFIG_FILENAME
+    secrepo_dir = root / SECREPO_DIRNAME
+    config_path = secrepo_dir / CONFIG_FILENAME
 
     if config_path.exists():
-        raise FileExistsError(f"{CONFIG_FILENAME} already exists in {root}.")
+        raise FileExistsError(
+            f"{SECREPO_DIRNAME}/{CONFIG_FILENAME} already exists in {root}."
+        )
+
+    secrepo_dir.mkdir(exist_ok=True)
 
     config = SecureRepoConfig(
         version=CONFIG_VERSION,
