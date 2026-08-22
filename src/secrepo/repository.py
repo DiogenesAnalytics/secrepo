@@ -1,6 +1,8 @@
 """Git repository management for SecureRepo."""
 
+import hashlib
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Optional
 
@@ -9,6 +11,14 @@ from .config import CONFIG_VERSION
 from .config import SecureRepoConfig
 from .config import load_config
 from .config import save_config
+
+
+class FileState(Enum):
+    """Current state of a protected file."""
+
+    LOCKED = "locked"
+    UNLOCKED = "unlocked"
+    MISSING = "missing"
 
 
 @dataclass(frozen=True)
@@ -25,6 +35,70 @@ class SecureRepo:
 
     root: Path
     config: SecureRepoConfig
+
+    def protected_paths(self) -> tuple[Path, ...]:
+        """Return protected paths relative to the repository root."""
+        return tuple(self.root / path for path in self.config.protected)
+
+    @staticmethod
+    def encrypted_path(path: Path) -> Path:
+        """Return the encrypted path corresponding to a plaintext path."""
+        return path.with_name(f"{path.name}.enc")
+
+    def file_state(self, path: Path) -> FileState:
+        """Determine the current state of a protected file.
+
+        Parameters
+        ----------
+        path:
+            Path to the protected file, relative to the repository root.
+
+        Returns
+        -------
+        FileState
+            Current state of the protected file.
+        """
+        plaintext = self.root / path
+        encrypted = self.encrypted_path(plaintext)
+
+        plaintext_exists = plaintext.exists()
+        encrypted_exists = encrypted.exists()
+
+        if not plaintext_exists and not encrypted_exists:
+            return FileState.MISSING
+
+        if not plaintext_exists:
+            return FileState.LOCKED
+
+        return FileState.UNLOCKED
+
+    def status(self) -> dict[Path, FileState]:
+        """Return the current state of all protected files."""
+        return {
+            Path(path): self.file_state(Path(path)) for path in self.config.protected
+        }
+
+
+def hash_file(path: Path) -> str:
+    """Return the SHA-256 hash of a file.
+
+    Parameters
+    ----------
+    path:
+        Path to the file to hash.
+
+    Returns
+    -------
+    str
+        Hexadecimal SHA-256 digest.
+    """
+    digest = hashlib.sha256()
+
+    with path.open("rb") as file:
+        while chunk := file.read(1024 * 1024):
+            digest.update(chunk)
+
+    return digest.hexdigest()
 
 
 def discover_repository(path: Optional[Path] = None) -> SecureRepo:
