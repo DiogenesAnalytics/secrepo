@@ -10,6 +10,7 @@ from .config import CONFIG_FILENAME
 from .config import CONFIG_VERSION
 from .config import SECREPO_DIRNAME
 from .config import SecureRepoConfig
+from .config import add_protected
 from .config import load_config
 from .config import save_config
 
@@ -78,6 +79,51 @@ class SecureRepo:
         return {
             Path(path): self.file_state(Path(path)) for path in self.config.protected
         }
+
+    def protect(self, path: Path) -> "SecureRepo":
+        """Protect a file in the repository.
+
+        Parameters
+        ----------
+        path:
+            Path to the file, relative to the repository root.
+
+        Returns
+        -------
+        SecureRepo
+            Updated repository.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the file does not exist.
+        ValueError
+            If the path is outside the repository.
+        """
+        path = path.resolve()
+
+        try:
+            relative_path = path.relative_to(self.root)
+        except ValueError as error:
+            raise ValueError(f"Path is outside the repository: {path}") from error
+
+        if not path.is_file():
+            raise FileNotFoundError(f"File does not exist: {path}")
+
+        config = add_protected(
+            self.config,
+            relative_path.as_posix(),
+        )
+
+        save_config(
+            config,
+            self.root / SECREPO_DIRNAME / CONFIG_FILENAME,
+        )
+
+        return SecureRepo(
+            root=self.root,
+            config=config,
+        )
 
 
 def hash_file(path: Path) -> str:

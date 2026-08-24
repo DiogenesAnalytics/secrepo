@@ -96,3 +96,30 @@ def save_config(config: SecureRepoConfig, path: Path) -> None:
             file,
             sort_keys=False,
         )
+
+
+def add_protected(
+    config: SecureRepoConfig,
+    path: str,
+) -> SecureRepoConfig:
+    """Return a configuration with a protected path added.
+
+    Parameters
+    ----------
+    config:
+        Existing SecureRepo configuration.
+    path:
+        Repository-relative path to protect.
+
+    Returns
+    -------
+    SecureRepoConfig
+        Configuration containing the protected path.
+    """
+    if path in config.protected:
+        return config
+
+    return SecureRepoConfig(
+        version=config.version,
+        protected=(*config.protected, path),
+    )

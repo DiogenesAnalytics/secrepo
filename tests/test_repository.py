@@ -182,3 +182,64 @@ def test_status(tmp_path: Path) -> None:
         Path("unlocked.txt"): FileState.UNLOCKED,
         Path("missing.txt"): FileState.MISSING,
     }
+
+
+def test_protect(tmp_path: Path) -> None:
+    """Protect an existing file."""
+    repo = init_repository(tmp_path)
+
+    path = tmp_path / "data" / "secret.csv"
+    path.parent.mkdir()
+    path.write_text("secret", encoding="utf-8")
+
+    repo = repo.protect(path)
+
+    assert repo.config.protected == ("data/secret.csv",)
+
+
+def test_protect_saves_configuration(tmp_path: Path) -> None:
+    """Persist a protected path to the configuration."""
+    repo = init_repository(tmp_path)
+
+    path = tmp_path / "secret.csv"
+    path.write_text("secret", encoding="utf-8")
+
+    repo.protect(path)
+
+    discovered = discover_repository(tmp_path)
+
+    assert discovered.config.protected == ("secret.csv",)
+
+
+def test_protect_does_not_duplicate_path(tmp_path: Path) -> None:
+    """Do not add a protected path more than once."""
+    repo = init_repository(tmp_path)
+
+    path = tmp_path / "secret.csv"
+    path.write_text("secret", encoding="utf-8")
+
+    repo = repo.protect(path)
+    repo = repo.protect(path)
+
+    assert repo.config.protected == ("secret.csv",)
+
+
+def test_protect_rejects_missing_file(tmp_path: Path) -> None:
+    """Reject a protected file that does not exist."""
+    repo = init_repository(tmp_path)
+
+    with pytest.raises(FileNotFoundError):
+        repo.protect(tmp_path / "missing.csv")
+
+
+def test_protect_rejects_path_outside_repository(
+    tmp_path: Path,
+) -> None:
+    """Reject a path outside the repository."""
+    repo = init_repository(tmp_path)
+
+    outside = tmp_path.parent / "outside.csv"
+    outside.write_text("secret", encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        repo.protect(outside)
