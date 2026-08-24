@@ -13,6 +13,7 @@ from .config import SecureRepoConfig
 from .config import add_protected
 from .config import load_config
 from .config import save_config
+from .encryption import EncryptionBackend
 
 
 class FileState(Enum):
@@ -124,6 +125,62 @@ class SecureRepo:
             root=self.root,
             config=config,
         )
+
+    def lock(
+        self,
+        path: Path,
+        encryption: EncryptionBackend,
+    ) -> None:
+        """Encrypt a protected file.
+
+        The plaintext file is never removed.
+
+        Parameters
+        ----------
+        path:
+            Path to the protected plaintext file.
+        encryption:
+            Encryption backend used to create the encrypted file.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the plaintext file does not exist.
+        ValueError
+            If the file is not protected or is outside the repository.
+        """
+        path = path.resolve()
+
+        try:
+            relative_path = path.relative_to(self.root)
+        except ValueError as error:
+            raise ValueError(f"Path is outside the repository: {path}") from error
+
+        relative_path_string = relative_path.as_posix()
+
+        if relative_path_string not in self.config.protected:
+            raise ValueError(f"File is not protected: {relative_path_string}")
+
+        if not path.is_file():
+            raise FileNotFoundError(f"File does not exist: {path}")
+
+        encrypted_path = self.encrypted_path(path)
+        temporary_path = encrypted_path.with_suffix(encrypted_path.suffix + ".tmp")
+
+        try:
+            encryption.encrypt(
+                path,
+                temporary_path,
+            )
+
+            if not temporary_path.is_file():
+                raise RuntimeError("Encryption backend did not create an output file.")
+
+            temporary_path.replace(encrypted_path)
+
+        except Exception:
+            temporary_path.unlink(missing_ok=True)
+            raise
 
 
 def hash_file(path: Path) -> str:

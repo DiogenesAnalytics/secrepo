@@ -15,6 +15,47 @@ from secrepo.repository import hash_file
 from secrepo.repository import init_repository
 
 
+class FakeEncryption:
+    """Fake encryption backend for testing."""
+
+    def encrypt(
+        self,
+        source: Path,
+        destination: Path,
+    ) -> None:
+        """Copy plaintext to the encrypted destination."""
+        destination.write_bytes(source.read_bytes())
+
+    def decrypt(
+        self,
+        source: Path,
+        destination: Path,
+    ) -> None:
+        """Copy encrypted data to the plaintext destination."""
+        destination.write_bytes(source.read_bytes())
+
+
+class FailingEncryption:
+    """Encryption backend that always fails."""
+
+    def encrypt(
+        self,
+        source: Path,
+        destination: Path,
+    ) -> None:
+        """Fail during encryption."""
+        destination.write_bytes(b"partial")
+        raise RuntimeError("Encryption failed.")
+
+    def decrypt(
+        self,
+        source: Path,
+        destination: Path,
+    ) -> None:
+        """Not implemented."""
+        raise NotImplementedError
+
+
 def test_init(tmp_path: Path) -> None:
     """Initialize a SecureRepo in a directory."""
     repo = init_repository(tmp_path)
@@ -243,3 +284,122 @@ def test_protect_rejects_path_outside_repository(
 
     with pytest.raises(ValueError):
         repo.protect(outside)
+
+
+def test_lock_creates_encrypted_file(tmp_path: Path) -> None:
+    """Lock a protected file."""
+    config = SecureRepoConfig(
+        version=CONFIG_VERSION,
+        protected=("secret.txt",),
+    )
+
+    repo = SecureRepo(
+        root=tmp_path,
+        config=config,
+    )
+
+    plaintext = tmp_path / "secret.txt"
+    plaintext.write_text("secret", encoding="utf-8")
+
+    repo.lock(
+        plaintext,
+        FakeEncryption(),
+    )
+
+    encrypted = tmp_path / "secret.txt.enc"
+
+    assert encrypted.exists()
+    assert plaintext.exists()
+    assert plaintext.read_text(encoding="utf-8") == "secret"
+
+
+def test_lock_rejects_unprotected_file(tmp_path: Path) -> None:
+    """Do not lock an unprotected file."""
+    repo = init_repository(tmp_path)
+
+    plaintext = tmp_path / "secret.txt"
+    plaintext.write_text("secret", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="not protected"):
+        repo.lock(
+            plaintext,
+            FakeEncryption(),
+        )
+
+
+def test_lock_rejects_missing_file(tmp_path: Path) -> None:
+    """Do not lock a file that does not exist."""
+    config = SecureRepoConfig(
+        version=CONFIG_VERSION,
+        protected=("secret.txt",),
+    )
+
+    repo = SecureRepo(
+        root=tmp_path,
+        config=config,
+    )
+
+    with pytest.raises(FileNotFoundError):
+        repo.lock(
+            tmp_path / "secret.txt",
+            FakeEncryption(),
+        )
+
+
+def test_lock_preserves_plaintext_when_encryption_fails(
+    tmp_path: Path,
+) -> None:
+    """Preserve plaintext if encryption fails."""
+    config = SecureRepoConfig(
+        version=CONFIG_VERSION,
+        protected=("secret.txt",),
+    )
+
+    repo = SecureRepo(
+        root=tmp_path,
+        config=config,
+    )
+
+    plaintext = tmp_path / "secret.txt"
+    plaintext.write_text("secret", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="Encryption failed"):
+        repo.lock(
+            plaintext,
+            FailingEncryption(),
+        )
+
+    assert plaintext.exists()
+    assert plaintext.read_text(encoding="utf-8") == "secret"
+    assert not (tmp_path / "secret.txt.enc").exists()
+    assert not (tmp_path / "secret.txt.enc.tmp").exists()
+
+
+def test_lock_preserves_existing_encrypted_file_on_failure(
+    tmp_path: Path,
+) -> None:
+    """Preserve the existing encrypted file if locking fails."""
+    config = SecureRepoConfig(
+        version=CONFIG_VERSION,
+        protected=("secret.txt",),
+    )
+
+    repo = SecureRepo(
+        root=tmp_path,
+        config=config,
+    )
+
+    plaintext = tmp_path / "secret.txt"
+    encrypted = tmp_path / "secret.txt.enc"
+
+    plaintext.write_text("new secret", encoding="utf-8")
+    encrypted.write_bytes(b"old encrypted data")
+
+    with pytest.raises(RuntimeError, match="Encryption failed"):
+        repo.lock(
+            plaintext,
+            FailingEncryption(),
+        )
+
+    assert encrypted.read_bytes() == b"old encrypted data"
+    assert plaintext.read_text(encoding="utf-8") == "new secret"
