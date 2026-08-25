@@ -6,7 +6,9 @@ import pytest
 
 from secrepo.config import CONFIG_FILENAME
 from secrepo.config import CONFIG_VERSION
+from secrepo.config import DEFAULT_ENCRYPTION_PROTOCOL
 from secrepo.config import SECREPO_DIRNAME
+from secrepo.config import EncryptionConfig
 from secrepo.config import SecureRepoConfig
 from secrepo.repository import FileState
 from secrepo.repository import SecureRepo
@@ -64,6 +66,7 @@ def test_init(tmp_path: Path) -> None:
     assert repo.config.version == CONFIG_VERSION
     assert repo.config.protected == ()
     assert (tmp_path / SECREPO_DIRNAME / CONFIG_FILENAME).exists()
+    assert repo.config.encryption.protocol == DEFAULT_ENCRYPTION_PROTOCOL
 
 
 def test_init_creates_secrepo_directory(tmp_path: Path) -> None:
@@ -132,6 +135,9 @@ def test_protected_paths(tmp_path: Path) -> None:
     """Resolve protected paths relative to the repository root."""
     config = SecureRepoConfig(
         version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol=DEFAULT_ENCRYPTION_PROTOCOL,
+        ),
         protected=(
             "data/customers.csv",
             "notebooks/analysis.ipynb",
@@ -200,6 +206,9 @@ def test_status(tmp_path: Path) -> None:
     """Report the state of all protected files."""
     config = SecureRepoConfig(
         version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol=DEFAULT_ENCRYPTION_PROTOCOL,
+        ),
         protected=(
             "locked.txt",
             "unlocked.txt",
@@ -290,6 +299,9 @@ def test_lock_creates_encrypted_file(tmp_path: Path) -> None:
     """Lock a protected file."""
     config = SecureRepoConfig(
         version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol=DEFAULT_ENCRYPTION_PROTOCOL,
+        ),
         protected=("secret.txt",),
     )
 
@@ -331,6 +343,9 @@ def test_lock_rejects_missing_file(tmp_path: Path) -> None:
     """Do not lock a file that does not exist."""
     config = SecureRepoConfig(
         version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol=DEFAULT_ENCRYPTION_PROTOCOL,
+        ),
         protected=("secret.txt",),
     )
 
@@ -352,6 +367,9 @@ def test_lock_preserves_plaintext_when_encryption_fails(
     """Preserve plaintext if encryption fails."""
     config = SecureRepoConfig(
         version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol=DEFAULT_ENCRYPTION_PROTOCOL,
+        ),
         protected=("secret.txt",),
     )
 
@@ -381,6 +399,9 @@ def test_lock_preserves_existing_encrypted_file_on_failure(
     """Preserve the existing encrypted file if locking fails."""
     config = SecureRepoConfig(
         version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol=DEFAULT_ENCRYPTION_PROTOCOL,
+        ),
         protected=("secret.txt",),
     )
 
@@ -403,3 +424,13 @@ def test_lock_preserves_existing_encrypted_file_on_failure(
 
     assert encrypted.read_bytes() == b"old encrypted data"
     assert plaintext.read_text(encoding="utf-8") == "new secret"
+
+
+def test_init_with_encryption_protocol(tmp_path: Path) -> None:
+    """Initialize a SecureRepo with a specified encryption protocol."""
+    repo = init_repository(
+        tmp_path,
+        encryption_protocol="age",
+    )
+
+    assert repo.config.encryption.protocol == "age"

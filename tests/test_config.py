@@ -7,6 +7,8 @@ import pytest
 import yaml
 
 from secrepo.config import CONFIG_VERSION
+from secrepo.config import DEFAULT_ENCRYPTION_PROTOCOL
+from secrepo.config import EncryptionConfig
 from secrepo.config import SecureRepoConfig
 from secrepo.config import load_config
 from secrepo.config import save_config
@@ -30,6 +32,9 @@ def test_load_config(tmp_path: Path) -> None:
 
     assert config == SecureRepoConfig(
         version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol=DEFAULT_ENCRYPTION_PROTOCOL,
+        ),
         protected=(
             "data/private/**",
             "notebooks/analysis.ipynb",
@@ -53,6 +58,9 @@ def test_load_config_with_no_protected_files(tmp_path: Path) -> None:
 
     assert config == SecureRepoConfig(
         version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol=DEFAULT_ENCRYPTION_PROTOCOL,
+        ),
         protected=(),
     )
 
@@ -63,6 +71,9 @@ def test_save_config(tmp_path: Path) -> None:
 
     config = SecureRepoConfig(
         version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol=DEFAULT_ENCRYPTION_PROTOCOL,
+        ),
         protected=(
             "data/private/**",
             "notebooks/analysis.ipynb",
@@ -75,6 +86,9 @@ def test_save_config(tmp_path: Path) -> None:
 
     assert data == {
         "version": CONFIG_VERSION,
+        "encryption": {
+            "protocol": DEFAULT_ENCRYPTION_PROTOCOL,
+        },
         "protected": [
             "data/private/**",
             "notebooks/analysis.ipynb",
@@ -196,6 +210,9 @@ def test_save_and_load_round_trip(tmp_path: Path) -> None:
 
     original = SecureRepoConfig(
         version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol=DEFAULT_ENCRYPTION_PROTOCOL,
+        ),
         protected=(
             "data/private/**",
             "notebooks/analysis.ipynb",
@@ -207,3 +224,92 @@ def test_save_and_load_round_trip(tmp_path: Path) -> None:
     loaded = load_config(config_path)
 
     assert loaded == original
+
+
+def test_load_config_with_encryption_protocol(tmp_path: Path) -> None:
+    """Load a configuration with an explicit encryption protocol."""
+    config_path = tmp_path / "secrepo.yaml"
+
+    config_path.write_text(
+        dedent("""\
+            version: 1
+            encryption:
+              protocol: age
+            protected: []
+            """),
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config.encryption == EncryptionConfig(
+        protocol="age",
+    )
+
+
+def test_load_config_rejects_unsupported_encryption_protocol(
+    tmp_path: Path,
+) -> None:
+    """Reject an unsupported encryption protocol."""
+    config_path = tmp_path / "secrepo.yaml"
+
+    config_path.write_text(
+        dedent("""\
+            version: 1
+            encryption:
+              protocol: unknown
+            protected: []
+            """),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Unsupported encryption protocol",
+    ):
+        load_config(config_path)
+
+
+def test_load_config_requires_encryption_mapping(
+    tmp_path: Path,
+) -> None:
+    """Reject an encryption value that is not a mapping."""
+    config_path = tmp_path / "secrepo.yaml"
+
+    config_path.write_text(
+        dedent("""\
+            version: 1
+            encryption: age
+            protected: []
+            """),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="'encryption' must be a mapping",
+    ):
+        load_config(config_path)
+
+
+def test_load_config_requires_encryption_protocol_string(
+    tmp_path: Path,
+) -> None:
+    """Reject a non-string encryption protocol."""
+    config_path = tmp_path / "secrepo.yaml"
+
+    config_path.write_text(
+        dedent("""\
+            version: 1
+            encryption:
+              protocol: 123
+            protected: []
+            """),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="'encryption.protocol' must be a string",
+    ):
+        load_config(config_path)

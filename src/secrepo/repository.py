@@ -8,7 +8,9 @@ from typing import Optional
 
 from .config import CONFIG_FILENAME
 from .config import CONFIG_VERSION
+from .config import DEFAULT_ENCRYPTION_PROTOCOL
 from .config import SECREPO_DIRNAME
+from .config import EncryptionConfig
 from .config import SecureRepoConfig
 from .config import add_protected
 from .config import load_config
@@ -241,7 +243,10 @@ def discover_repository(path: Optional[Path] = None) -> SecureRepo:
     )
 
 
-def init_repository(path: Optional[Path] = None) -> SecureRepo:
+def init_repository(
+    path: Optional[Path] = None,
+    encryption_protocol: str = DEFAULT_ENCRYPTION_PROTOCOL,
+) -> SecureRepo:
     """Initialize a SecureRepo in a directory.
 
     Parameters
@@ -249,6 +254,9 @@ def init_repository(path: Optional[Path] = None) -> SecureRepo:
     path:
         Directory in which to initialize the repository. If omitted,
         the current working directory is used.
+    encryption_protocol:
+        Encryption protocol to use for protected files. If omitted,
+        the default encryption protocol is used.
 
     Returns
     -------
@@ -273,6 +281,9 @@ def init_repository(path: Optional[Path] = None) -> SecureRepo:
 
     config = SecureRepoConfig(
         version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol=encryption_protocol,
+        ),
         protected=(),
     )
 

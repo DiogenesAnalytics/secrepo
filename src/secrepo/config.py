@@ -10,6 +10,22 @@ SECREPO_DIRNAME = ".secrepo"
 CONFIG_FILENAME = "protected.yaml"
 CONFIG_VERSION = 1
 
+DEFAULT_ENCRYPTION_PROTOCOL = "age"
+SUPPORTED_ENCRYPTION_PROTOCOLS = ("age",)
+
+
+@dataclass(frozen=True)
+class EncryptionConfig:
+    """Encryption configuration for a SecureRepo repository.
+
+    Parameters
+    ----------
+    protocol:
+        Encryption protocol used for protected files.
+    """
+
+    protocol: str
+
 
 @dataclass(frozen=True)
 class SecureRepoConfig:
@@ -19,11 +35,14 @@ class SecureRepoConfig:
     ----------
     version:
         Configuration file format version.
+    encryption:
+        Encryption configuration.
     protected:
         Paths or glob patterns identifying protected files.
     """
 
     version: int
+    encryption: EncryptionConfig
     protected: Tuple[str, ...]
 
 
@@ -33,7 +52,7 @@ def load_config(path: Path) -> SecureRepoConfig:
     Parameters
     ----------
     path:
-        Path to the ``secrepo.yaml`` configuration file.
+        Path to the SecureRepo configuration file.
 
     Returns
     -------
@@ -54,6 +73,7 @@ def load_config(path: Path) -> SecureRepoConfig:
         raise ValueError("SecureRepo configuration must be a mapping.")
 
     version = data.get("version")
+    encryption = data.get("encryption", {})
     protected = data.get("protected", [])
 
     if not isinstance(version, int):
@@ -61,6 +81,20 @@ def load_config(path: Path) -> SecureRepoConfig:
 
     if version != CONFIG_VERSION:
         raise ValueError(f"Unsupported configuration version: {version}.")
+
+    if not isinstance(encryption, dict):
+        raise ValueError("'encryption' must be a mapping.")
+
+    protocol = encryption.get(
+        "protocol",
+        DEFAULT_ENCRYPTION_PROTOCOL,
+    )
+
+    if not isinstance(protocol, str):
+        raise ValueError("'encryption.protocol' must be a string.")
+
+    if protocol not in SUPPORTED_ENCRYPTION_PROTOCOLS:
+        raise ValueError(f"Unsupported encryption protocol: {protocol}.")
 
     if not isinstance(protected, list):
         raise ValueError("'protected' must be a list.")
@@ -70,6 +104,9 @@ def load_config(path: Path) -> SecureRepoConfig:
 
     return SecureRepoConfig(
         version=version,
+        encryption=EncryptionConfig(
+            protocol=protocol,
+        ),
         protected=tuple(protected),
     )
 
@@ -87,6 +124,9 @@ def save_config(config: SecureRepoConfig, path: Path) -> None:
     """
     data = {
         "version": config.version,
+        "encryption": {
+            "protocol": config.encryption.protocol,
+        },
         "protected": list(config.protected),
     }
 
@@ -121,5 +161,6 @@ def add_protected(
 
     return SecureRepoConfig(
         version=config.version,
+        encryption=config.encryption,
         protected=(*config.protected, path),
     )
