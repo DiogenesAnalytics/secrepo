@@ -40,7 +40,7 @@ def init(
             path,
             encryption_protocol=encryption_protocol,
         )
-    except FileExistsError as error:
+    except (FileExistsError, ValueError) as error:
         raise click.ClickException(str(error)) from error
 
     click.echo(f"Initialized SecureRepo in {path.resolve()}")

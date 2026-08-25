@@ -46,6 +46,23 @@ class SecureRepoConfig:
     protected: Tuple[str, ...]
 
 
+def validate_encryption_protocol(protocol: str) -> None:
+    """Validate an encryption protocol.
+
+    Parameters
+    ----------
+    protocol:
+        Encryption protocol name.
+
+    Raises
+    ------
+    ValueError
+        If the encryption protocol is not supported.
+    """
+    if protocol not in SUPPORTED_ENCRYPTION_PROTOCOLS:
+        raise ValueError(f"Unsupported encryption protocol: {protocol}.")
+
+
 def load_config(path: Path) -> SecureRepoConfig:
     """Load a SecureRepo configuration from a YAML file.
 
@@ -93,8 +110,7 @@ def load_config(path: Path) -> SecureRepoConfig:
     if not isinstance(protocol, str):
         raise ValueError("'encryption.protocol' must be a string.")
 
-    if protocol not in SUPPORTED_ENCRYPTION_PROTOCOLS:
-        raise ValueError(f"Unsupported encryption protocol: {protocol}.")
+    validate_encryption_protocol(protocol)
 
     if not isinstance(protected, list):
         raise ValueError("'protected' must be a list.")

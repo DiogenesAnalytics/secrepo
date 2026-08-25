@@ -15,6 +15,7 @@ from .config import SecureRepoConfig
 from .config import add_protected
 from .config import load_config
 from .config import save_config
+from .config import validate_encryption_protocol
 from .encryption import EncryptionBackend
 
 
@@ -276,6 +277,8 @@ def init_repository(
         raise FileExistsError(
             f"{SECREPO_DIRNAME}/{CONFIG_FILENAME} already exists in {root}."
         )
+
+    validate_encryption_protocol(encryption_protocol)
 
     secrepo_dir.mkdir(exist_ok=True)
 

@@ -108,3 +108,23 @@ def test_cli_init_accepts_encryption_protocol(tmp_path: Path) -> None:
         )
 
         assert data["encryption"]["protocol"] == "age"
+
+
+def test_cli_init_rejects_unsupported_encryption_protocol(
+    tmp_path: Path,
+) -> None:
+    """Reject an unsupported encryption protocol."""
+    runner = CliRunner()
+
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(
+            main,
+            [
+                "init",
+                "--encryption",
+                "unknown",
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert "Unsupported encryption protocol" in result.output
