@@ -4,6 +4,7 @@ from pathlib import Path
 
 import click
 
+from .config import DEFAULT_ENCRYPTION_PROTOCOL
 from .repository import discover_repository
 from .repository import init_repository
 
@@ -23,10 +24,22 @@ def main() -> None:
     ),
     default=".",
 )
-def init(path: Path) -> None:
+@click.option(
+    "--encryption",
+    "encryption_protocol",
+    default=DEFAULT_ENCRYPTION_PROTOCOL,
+    show_default=True,
+)
+def init(
+    path: Path,
+    encryption_protocol: str,
+) -> None:
     """Initialize a SecureRepo."""
     try:
-        init_repository(path)
+        init_repository(
+            path,
+            encryption_protocol=encryption_protocol,
+        )
     except FileExistsError as error:
         raise click.ClickException(str(error)) from error
 

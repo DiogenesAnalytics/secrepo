@@ -2,9 +2,11 @@
 
 from pathlib import Path
 
+import yaml
 from click.testing import CliRunner
 
 from secrepo.cli import main
+from secrepo.config import DEFAULT_ENCRYPTION_PROTOCOL
 
 
 def test_cli_init(tmp_path: Path) -> None:
@@ -67,3 +69,42 @@ def test_cli_status(tmp_path: Path) -> None:
 
         assert result.exit_code == 0
         assert "secret.txt: unlocked" in result.output
+
+
+def test_cli_init_uses_default_encryption_protocol(tmp_path: Path) -> None:
+    """Initialize with the default encryption protocol."""
+    runner = CliRunner()
+
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(main, ["init"])
+
+        assert result.exit_code == 0
+
+        config_path = Path(".secrepo/protected.yaml")
+        assert config_path.exists()
+
+        data = yaml.safe_load(
+            config_path.read_text(encoding="utf-8"),
+        )
+
+        assert data["encryption"]["protocol"] == DEFAULT_ENCRYPTION_PROTOCOL
+
+
+def test_cli_init_accepts_encryption_protocol(tmp_path: Path) -> None:
+    """Initialize with an explicitly selected encryption protocol."""
+    runner = CliRunner()
+
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(
+            main,
+            ["init", "--encryption", "age"],
+        )
+
+        assert result.exit_code == 0
+
+        config_path = Path(".secrepo/protected.yaml")
+        data = yaml.safe_load(
+            config_path.read_text(encoding="utf-8"),
+        )
+
+        assert data["encryption"]["protocol"] == "age"
