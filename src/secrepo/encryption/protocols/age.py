@@ -11,6 +11,11 @@ from pyrage.x25519 import Recipient
 from ..backend import EncryptionBackend
 
 
+def generate_identity() -> Identity:
+    """Generate a new age X25519 identity."""
+    return Identity.generate()
+
+
 class AgeEncryptionBackend(EncryptionBackend):
     """Encryption backend using the age encryption protocol.
 
