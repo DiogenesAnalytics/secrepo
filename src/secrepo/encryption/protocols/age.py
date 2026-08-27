@@ -16,6 +16,24 @@ def generate_identity() -> Identity:
     return Identity.generate()
 
 
+def save_identity(
+    identity: Identity,
+    path: Path,
+) -> None:
+    """Save an age identity to a file."""
+    path.write_text(
+        str(identity),
+        encoding="utf-8",
+    )
+
+
+def load_identity(path: Path) -> Identity:
+    """Load an age identity from a file."""
+    return Identity.from_str(
+        path.read_text(encoding="utf-8").strip(),
+    )
+
+
 class AgeEncryptionBackend(EncryptionBackend):
     """Encryption backend using the age encryption protocol.
 

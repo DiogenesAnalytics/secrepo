@@ -9,6 +9,8 @@ from pyrage.x25519 import Identity
 
 from secrepo.encryption.protocols.age import AgeEncryptionBackend
 from secrepo.encryption.protocols.age import generate_identity
+from secrepo.encryption.protocols.age import load_identity
+from secrepo.encryption.protocols.age import save_identity
 
 
 def test_age_encrypt_decrypt() -> None:
@@ -81,6 +83,33 @@ def test_generate_identity() -> None:
     decrypted = decrypt(
         encrypted,
         [identity],
+    )
+
+    assert decrypted == plaintext
+
+
+def test_save_and_load_identity(tmp_path: Path) -> None:
+    """Save and load an age identity."""
+    identity = Identity.generate()
+    path = tmp_path / "identity"
+
+    save_identity(
+        identity,
+        path,
+    )
+
+    loaded = load_identity(path)
+
+    plaintext = b"secret data"
+
+    encrypted = encrypt(
+        plaintext,
+        [identity.to_public()],
+    )
+
+    decrypted = decrypt(
+        encrypted,
+        [loaded],
     )
 
     assert decrypted == plaintext
