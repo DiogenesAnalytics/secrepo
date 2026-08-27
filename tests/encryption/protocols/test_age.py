@@ -6,10 +6,13 @@ from pyrage import decrypt
 from pyrage import encrypt
 from pyrage import x25519
 from pyrage.x25519 import Identity
+from pytest import MonkeyPatch
 
 from secrepo.encryption.protocols.age import AgeEncryptionBackend
+from secrepo.encryption.protocols.age import default_identity_path
 from secrepo.encryption.protocols.age import generate_identity
 from secrepo.encryption.protocols.age import load_identity
+from secrepo.encryption.protocols.age import resolve_identity_path
 from secrepo.encryption.protocols.age import save_identity
 
 
@@ -113,3 +116,41 @@ def test_save_and_load_identity(tmp_path: Path) -> None:
     )
 
     assert decrypted == plaintext
+
+
+def test_default_identity_path(monkeypatch: MonkeyPatch) -> None:
+    """Return the default age identity path."""
+    monkeypatch.setenv(
+        "XDG_DATA_HOME",
+        "/tmp/data",
+    )
+
+    assert default_identity_path() == Path(
+        "/tmp/data/secrepo/age/identity",
+    )
+
+
+def test_default_identity_path_without_xdg_data_home(monkeypatch: MonkeyPatch) -> None:
+    """Use the standard home data directory without XDG_DATA_HOME."""
+    monkeypatch.delenv("XDG_DATA_HOME", raising=False)
+    monkeypatch.setattr(
+        Path,
+        "home",
+        lambda: Path("/home/test"),
+    )
+
+    assert default_identity_path() == Path(
+        "/home/test/.local/share/secrepo/age/identity",
+    )
+
+
+def test_resolve_identity_path() -> None:
+    """Prefer an explicitly supplied identity path."""
+    path = Path("/custom/identity")
+
+    assert resolve_identity_path(path) == path
+
+
+def test_resolve_identity_path_uses_default() -> None:
+    """Use the default identity path when none is supplied."""
+    assert resolve_identity_path() == default_identity_path()
