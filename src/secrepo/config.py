@@ -1,7 +1,10 @@
 """Configuration management for SecureRepo projects."""
 
 from dataclasses import dataclass
+from dataclasses import field
 from pathlib import Path
+from typing import Any
+from typing import Dict
 from typing import Tuple
 
 import yaml
@@ -22,9 +25,12 @@ class EncryptionConfig:
     ----------
     protocol:
         Encryption protocol used for protected files.
+    options:
+        Options passed to the encryption protocol.
     """
 
     protocol: str
+    options: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -106,9 +112,13 @@ def load_config(path: Path) -> SecureRepoConfig:
         "protocol",
         DEFAULT_ENCRYPTION_PROTOCOL,
     )
+    options = encryption.get("options", {})
 
     if not isinstance(protocol, str):
         raise ValueError("'encryption.protocol' must be a string.")
+
+    if not isinstance(options, dict):
+        raise ValueError("'encryption.options' must be a mapping.")
 
     validate_encryption_protocol(protocol)
 
@@ -122,6 +132,7 @@ def load_config(path: Path) -> SecureRepoConfig:
         version=version,
         encryption=EncryptionConfig(
             protocol=protocol,
+            options=options,
         ),
         protected=tuple(protected),
     )
@@ -142,6 +153,7 @@ def save_config(config: SecureRepoConfig, path: Path) -> None:
         "version": config.version,
         "encryption": {
             "protocol": config.encryption.protocol,
+            "options": config.encryption.options,
         },
         "protected": list(config.protected),
     }

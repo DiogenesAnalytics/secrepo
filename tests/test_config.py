@@ -88,6 +88,7 @@ def test_save_config(tmp_path: Path) -> None:
         "version": CONFIG_VERSION,
         "encryption": {
             "protocol": DEFAULT_ENCRYPTION_PROTOCOL,
+            "options": {},
         },
         "protected": [
             "data/private/**",
@@ -212,6 +213,11 @@ def test_save_and_load_round_trip(tmp_path: Path) -> None:
         version=CONFIG_VERSION,
         encryption=EncryptionConfig(
             protocol=DEFAULT_ENCRYPTION_PROTOCOL,
+            options={
+                "recipients": [
+                    "age1example",
+                ],
+            },
         ),
         protected=(
             "data/private/**",
@@ -244,6 +250,35 @@ def test_load_config_with_encryption_protocol(tmp_path: Path) -> None:
 
     assert config.encryption == EncryptionConfig(
         protocol="age",
+    )
+
+
+def test_load_config_with_encryption_options(tmp_path: Path) -> None:
+    """Load a configuration with encryption protocol options."""
+    config_path = tmp_path / "secrepo.yaml"
+
+    config_path.write_text(
+        dedent("""\
+            version: 1
+            encryption:
+              protocol: age
+              options:
+                recipients:
+                  - age1example
+            protected: []
+            """),
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config.encryption == EncryptionConfig(
+        protocol="age",
+        options={
+            "recipients": [
+                "age1example",
+            ],
+        },
     )
 
 
@@ -288,6 +323,30 @@ def test_load_config_requires_encryption_mapping(
     with pytest.raises(
         ValueError,
         match="'encryption' must be a mapping",
+    ):
+        load_config(config_path)
+
+
+def test_load_config_requires_encryption_options_mapping(
+    tmp_path: Path,
+) -> None:
+    """Reject encryption options that are not a mapping."""
+    config_path = tmp_path / "secrepo.yaml"
+
+    config_path.write_text(
+        dedent("""\
+            version: 1
+            encryption:
+              protocol: age
+              options: invalid
+            protected: []
+            """),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="'encryption.options' must be a mapping",
     ):
         load_config(config_path)
 
