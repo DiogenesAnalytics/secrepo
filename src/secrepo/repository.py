@@ -17,6 +17,7 @@ from .config import load_config
 from .config import save_config
 from .config import validate_encryption_protocol
 from .encryption import EncryptionBackend
+from .encryption import create_backend
 
 
 class FileState(Enum):
@@ -41,6 +42,11 @@ class SecureRepo:
 
     root: Path
     config: SecureRepoConfig
+
+    @property
+    def encryption_backend(self) -> EncryptionBackend:
+        """Return the encryption backend configured for this repository."""
+        return create_backend(self.config.encryption)
 
     def protected_paths(self) -> tuple[Path, ...]:
         """Return protected paths relative to the repository root."""
@@ -132,7 +138,6 @@ class SecureRepo:
     def lock(
         self,
         path: Path,
-        encryption: EncryptionBackend,
     ) -> None:
         """Encrypt a protected file.
 
@@ -142,8 +147,6 @@ class SecureRepo:
         ----------
         path:
             Path to the protected plaintext file.
-        encryption:
-            Encryption backend used to create the encrypted file.
 
         Raises
         ------
@@ -171,7 +174,7 @@ class SecureRepo:
         temporary_path = encrypted_path.with_suffix(encrypted_path.suffix + ".tmp")
 
         try:
-            encryption.encrypt(
+            self.encryption_backend.encrypt(
                 path,
                 temporary_path,
             )

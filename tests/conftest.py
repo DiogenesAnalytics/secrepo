@@ -11,3 +11,9 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers", "repo: custom marker for secrepo.repository module tests."
     )
+    config.addinivalue_line(
+        "markers", "enc: custom marker for secrepo.encryption module tests."
+    )
+    config.addinivalue_line(
+        "markers", "cli: custom marker for secrepo.cli module tests."
+    )

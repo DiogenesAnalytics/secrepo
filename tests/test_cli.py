@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pytest
 import yaml
 from click.testing import CliRunner
 
@@ -9,6 +10,7 @@ from secrepo.cli import main
 from secrepo.config import DEFAULT_ENCRYPTION_PROTOCOL
 
 
+@pytest.mark.cli
 def test_cli_init(tmp_path: Path) -> None:
     """Initialize a SecureRepo from the CLI."""
     runner = CliRunner()
@@ -19,6 +21,7 @@ def test_cli_init(tmp_path: Path) -> None:
     assert (tmp_path / ".secrepo" / "protected.yaml").exists()
 
 
+@pytest.mark.cli
 def test_cli_protect(tmp_path: Path) -> None:
     """Protect a file from the CLI."""
     runner = CliRunner()
@@ -41,6 +44,7 @@ def test_cli_protect(tmp_path: Path) -> None:
         assert "Protected" in result.output
 
 
+@pytest.mark.cli
 def test_cli_status(tmp_path: Path) -> None:
     """Show protected file status from the CLI."""
     runner = CliRunner()
@@ -71,6 +75,7 @@ def test_cli_status(tmp_path: Path) -> None:
         assert "secret.txt: unlocked" in result.output
 
 
+@pytest.mark.cli
 def test_cli_init_uses_default_encryption_protocol(tmp_path: Path) -> None:
     """Initialize with the default encryption protocol."""
     runner = CliRunner()
@@ -90,6 +95,7 @@ def test_cli_init_uses_default_encryption_protocol(tmp_path: Path) -> None:
         assert data["encryption"]["protocol"] == DEFAULT_ENCRYPTION_PROTOCOL
 
 
+@pytest.mark.cli
 def test_cli_init_accepts_encryption_protocol(tmp_path: Path) -> None:
     """Initialize with an explicitly selected encryption protocol."""
     runner = CliRunner()
@@ -110,6 +116,7 @@ def test_cli_init_accepts_encryption_protocol(tmp_path: Path) -> None:
         assert data["encryption"]["protocol"] == "age"
 
 
+@pytest.mark.cli
 def test_cli_init_rejects_unsupported_encryption_protocol(
     tmp_path: Path,
 ) -> None:

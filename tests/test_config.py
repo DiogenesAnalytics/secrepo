@@ -14,6 +14,7 @@ from secrepo.config import load_config
 from secrepo.config import save_config
 
 
+@pytest.mark.config
 def test_load_config(tmp_path: Path) -> None:
     """Load a valid configuration from a YAML file."""
     config_path = tmp_path / "secrepo.yaml"
@@ -42,6 +43,7 @@ def test_load_config(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.config
 def test_load_config_with_no_protected_files(tmp_path: Path) -> None:
     """Load a configuration with no protected files."""
     config_path = tmp_path / "secrepo.yaml"
@@ -65,6 +67,7 @@ def test_load_config_with_no_protected_files(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.config
 def test_save_config(tmp_path: Path) -> None:
     """Save a configuration to a YAML file."""
     config_path = tmp_path / "secrepo.yaml"
@@ -97,6 +100,7 @@ def test_save_config(tmp_path: Path) -> None:
     }
 
 
+@pytest.mark.config
 def test_load_config_file_not_found(tmp_path: Path) -> None:
     """Raise FileNotFoundError when the configuration does not exist."""
     config_path = tmp_path / "missing.yaml"
@@ -105,6 +109,7 @@ def test_load_config_file_not_found(tmp_path: Path) -> None:
         load_config(config_path)
 
 
+@pytest.mark.config
 def test_load_config_requires_mapping(tmp_path: Path) -> None:
     """Reject a configuration whose root value is not a mapping."""
     config_path = tmp_path / "secrepo.yaml"
@@ -121,6 +126,7 @@ def test_load_config_requires_mapping(tmp_path: Path) -> None:
         load_config(config_path)
 
 
+@pytest.mark.config
 def test_load_config_requires_integer_version(tmp_path: Path) -> None:
     """Reject a configuration with a non-integer version."""
     config_path = tmp_path / "secrepo.yaml"
@@ -140,6 +146,7 @@ def test_load_config_requires_integer_version(tmp_path: Path) -> None:
         load_config(config_path)
 
 
+@pytest.mark.config
 def test_load_config_rejects_unsupported_version(
     tmp_path: Path,
 ) -> None:
@@ -161,6 +168,7 @@ def test_load_config_rejects_unsupported_version(
         load_config(config_path)
 
 
+@pytest.mark.config
 def test_load_config_requires_protected_list(
     tmp_path: Path,
 ) -> None:
@@ -182,6 +190,7 @@ def test_load_config_requires_protected_list(
         load_config(config_path)
 
 
+@pytest.mark.config
 def test_load_config_requires_string_paths(
     tmp_path: Path,
 ) -> None:
@@ -205,6 +214,7 @@ def test_load_config_requires_string_paths(
         load_config(config_path)
 
 
+@pytest.mark.config
 def test_save_and_load_round_trip(tmp_path: Path) -> None:
     """A saved configuration can be loaded without changing its value."""
     config_path = tmp_path / "secrepo.yaml"
@@ -232,6 +242,7 @@ def test_save_and_load_round_trip(tmp_path: Path) -> None:
     assert loaded == original
 
 
+@pytest.mark.config
 def test_load_config_with_encryption_protocol(tmp_path: Path) -> None:
     """Load a configuration with an explicit encryption protocol."""
     config_path = tmp_path / "secrepo.yaml"
@@ -253,6 +264,7 @@ def test_load_config_with_encryption_protocol(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.config
 def test_load_config_with_encryption_options(tmp_path: Path) -> None:
     """Load a configuration with encryption protocol options."""
     config_path = tmp_path / "secrepo.yaml"
@@ -282,6 +294,7 @@ def test_load_config_with_encryption_options(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.config
 def test_load_config_rejects_unsupported_encryption_protocol(
     tmp_path: Path,
 ) -> None:
@@ -305,6 +318,7 @@ def test_load_config_rejects_unsupported_encryption_protocol(
         load_config(config_path)
 
 
+@pytest.mark.config
 def test_load_config_requires_encryption_mapping(
     tmp_path: Path,
 ) -> None:
@@ -327,6 +341,7 @@ def test_load_config_requires_encryption_mapping(
         load_config(config_path)
 
 
+@pytest.mark.config
 def test_load_config_requires_encryption_options_mapping(
     tmp_path: Path,
 ) -> None:
@@ -351,6 +366,7 @@ def test_load_config_requires_encryption_options_mapping(
         load_config(config_path)
 
 
+@pytest.mark.config
 def test_load_config_requires_encryption_protocol_string(
     tmp_path: Path,
 ) -> None:

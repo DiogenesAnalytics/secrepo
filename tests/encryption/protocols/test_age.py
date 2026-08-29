@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pytest
 from pyrage import decrypt
 from pyrage import encrypt
 from pyrage import x25519
@@ -16,6 +17,7 @@ from secrepo.encryption.protocols.age import resolve_identity_path
 from secrepo.encryption.protocols.age import save_identity
 
 
+@pytest.mark.enc
 def test_age_encrypt_decrypt() -> None:
     """Encrypt and decrypt data using age."""
     identity = x25519.Identity.generate()
@@ -36,6 +38,7 @@ def test_age_encrypt_decrypt() -> None:
     assert decrypted == plaintext
 
 
+@pytest.mark.enc
 def test_age_backend_encrypt_decrypt(tmp_path: Path) -> None:
     """Encrypt and decrypt a file using the age backend."""
     identity = Identity.generate()
@@ -71,6 +74,7 @@ def test_age_backend_encrypt_decrypt(tmp_path: Path) -> None:
     assert decrypted_path.read_bytes() == plaintext
 
 
+@pytest.mark.enc
 def test_generate_identity() -> None:
     """Generate an identity that can encrypt and decrypt data."""
     identity = generate_identity()
@@ -91,6 +95,7 @@ def test_generate_identity() -> None:
     assert decrypted == plaintext
 
 
+@pytest.mark.enc
 def test_save_and_load_identity(tmp_path: Path) -> None:
     """Save and load an age identity."""
     identity = Identity.generate()
@@ -118,6 +123,7 @@ def test_save_and_load_identity(tmp_path: Path) -> None:
     assert decrypted == plaintext
 
 
+@pytest.mark.enc
 def test_default_identity_path(monkeypatch: MonkeyPatch) -> None:
     """Return the default age identity path."""
     monkeypatch.setenv(
@@ -130,6 +136,7 @@ def test_default_identity_path(monkeypatch: MonkeyPatch) -> None:
     )
 
 
+@pytest.mark.enc
 def test_default_identity_path_without_xdg_data_home(monkeypatch: MonkeyPatch) -> None:
     """Use the standard home data directory without XDG_DATA_HOME."""
     monkeypatch.delenv("XDG_DATA_HOME", raising=False)
@@ -144,6 +151,7 @@ def test_default_identity_path_without_xdg_data_home(monkeypatch: MonkeyPatch) -
     )
 
 
+@pytest.mark.enc
 def test_resolve_identity_path() -> None:
     """Prefer an explicitly supplied identity path."""
     path = Path("/custom/identity")
@@ -151,6 +159,7 @@ def test_resolve_identity_path() -> None:
     assert resolve_identity_path(path) == path
 
 
+@pytest.mark.enc
 def test_resolve_identity_path_uses_default() -> None:
     """Use the default identity path when none is supplied."""
     assert resolve_identity_path() == default_identity_path()

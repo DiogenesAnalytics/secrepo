@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+from pytest import MonkeyPatch
 
 from secrepo.config import CONFIG_FILENAME
 from secrepo.config import CONFIG_VERSION
@@ -58,6 +59,7 @@ class FailingEncryption:
         raise NotImplementedError
 
 
+@pytest.mark.repo
 def test_init(tmp_path: Path) -> None:
     """Initialize a SecureRepo in a directory."""
     repo = init_repository(tmp_path)
@@ -69,6 +71,7 @@ def test_init(tmp_path: Path) -> None:
     assert repo.config.encryption.protocol == DEFAULT_ENCRYPTION_PROTOCOL
 
 
+@pytest.mark.repo
 def test_init_creates_secrepo_directory(tmp_path: Path) -> None:
     """Initialize the SecureRepo metadata directory."""
     init_repository(tmp_path)
@@ -79,6 +82,7 @@ def test_init_creates_secrepo_directory(tmp_path: Path) -> None:
     assert (secrepo_dir / CONFIG_FILENAME).is_file()
 
 
+@pytest.mark.repo
 def test_init_rejects_existing_configuration(tmp_path: Path) -> None:
     """Reject initialization when SecureRepo already exists."""
     init_repository(tmp_path)
@@ -87,6 +91,7 @@ def test_init_rejects_existing_configuration(tmp_path: Path) -> None:
         init_repository(tmp_path)
 
 
+@pytest.mark.repo
 def test_discover(tmp_path: Path) -> None:
     """Discover a SecureRepo from within the repository."""
     init_repository(tmp_path)
@@ -99,6 +104,7 @@ def test_discover(tmp_path: Path) -> None:
     assert repo.root == tmp_path
 
 
+@pytest.mark.repo
 def test_discover_fails_outside_repository(
     tmp_path: Path,
 ) -> None:
@@ -107,6 +113,7 @@ def test_discover_fails_outside_repository(
         discover_repository(tmp_path)
 
 
+@pytest.mark.repo
 def test_hash_file(tmp_path: Path) -> None:
     """Hash the contents of a file."""
     path = tmp_path / "test.txt"
@@ -118,6 +125,7 @@ def test_hash_file(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.repo
 def test_hash_file_changes_with_contents(tmp_path: Path) -> None:
     """Produce different hashes for different file contents."""
     path = tmp_path / "test.txt"
@@ -131,6 +139,7 @@ def test_hash_file_changes_with_contents(tmp_path: Path) -> None:
     assert first_hash != second_hash
 
 
+@pytest.mark.repo
 def test_protected_paths(tmp_path: Path) -> None:
     """Resolve protected paths relative to the repository root."""
     config = SecureRepoConfig(
@@ -155,6 +164,7 @@ def test_protected_paths(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.repo
 def test_encrypted_path(tmp_path: Path) -> None:
     """Derive the encrypted path from a plaintext path."""
     path = tmp_path / "data" / "customers.csv"
@@ -162,6 +172,7 @@ def test_encrypted_path(tmp_path: Path) -> None:
     assert SecureRepo.encrypted_path(path) == (tmp_path / "data" / "customers.csv.enc")
 
 
+@pytest.mark.repo
 def test_file_state_missing(tmp_path: Path) -> None:
     """Report MISSING when neither representation exists."""
     repo = init_repository(tmp_path)
@@ -169,6 +180,7 @@ def test_file_state_missing(tmp_path: Path) -> None:
     assert repo.file_state(Path("secret.txt")) is FileState.MISSING
 
 
+@pytest.mark.repo
 def test_file_state_locked(tmp_path: Path) -> None:
     """Report LOCKED when only the encrypted file exists."""
     repo = init_repository(tmp_path)
@@ -179,6 +191,7 @@ def test_file_state_locked(tmp_path: Path) -> None:
     assert repo.file_state(Path("secret.txt")) is FileState.LOCKED
 
 
+@pytest.mark.repo
 def test_file_state_unlocked(tmp_path: Path) -> None:
     """Report UNLOCKED when the plaintext exists."""
     repo = init_repository(tmp_path)
@@ -189,6 +202,7 @@ def test_file_state_unlocked(tmp_path: Path) -> None:
     assert repo.file_state(Path("secret.txt")) is FileState.UNLOCKED
 
 
+@pytest.mark.repo
 def test_file_state_unlocked_when_both_exist(tmp_path: Path) -> None:
     """Report UNLOCKED when both plaintext and encrypted files exist."""
     repo = init_repository(tmp_path)
@@ -202,6 +216,7 @@ def test_file_state_unlocked_when_both_exist(tmp_path: Path) -> None:
     assert repo.file_state(Path("secret.txt")) is FileState.UNLOCKED
 
 
+@pytest.mark.repo
 def test_status(tmp_path: Path) -> None:
     """Report the state of all protected files."""
     config = SecureRepoConfig(
@@ -234,6 +249,7 @@ def test_status(tmp_path: Path) -> None:
     }
 
 
+@pytest.mark.repo
 def test_protect(tmp_path: Path) -> None:
     """Protect an existing file."""
     repo = init_repository(tmp_path)
@@ -247,6 +263,7 @@ def test_protect(tmp_path: Path) -> None:
     assert repo.config.protected == ("data/secret.csv",)
 
 
+@pytest.mark.repo
 def test_protect_saves_configuration(tmp_path: Path) -> None:
     """Persist a protected path to the configuration."""
     repo = init_repository(tmp_path)
@@ -261,6 +278,7 @@ def test_protect_saves_configuration(tmp_path: Path) -> None:
     assert discovered.config.protected == ("secret.csv",)
 
 
+@pytest.mark.repo
 def test_protect_does_not_duplicate_path(tmp_path: Path) -> None:
     """Do not add a protected path more than once."""
     repo = init_repository(tmp_path)
@@ -274,6 +292,7 @@ def test_protect_does_not_duplicate_path(tmp_path: Path) -> None:
     assert repo.config.protected == ("secret.csv",)
 
 
+@pytest.mark.repo
 def test_protect_rejects_missing_file(tmp_path: Path) -> None:
     """Reject a protected file that does not exist."""
     repo = init_repository(tmp_path)
@@ -282,6 +301,7 @@ def test_protect_rejects_missing_file(tmp_path: Path) -> None:
         repo.protect(tmp_path / "missing.csv")
 
 
+@pytest.mark.repo
 def test_protect_rejects_path_outside_repository(
     tmp_path: Path,
 ) -> None:
@@ -295,7 +315,11 @@ def test_protect_rejects_path_outside_repository(
         repo.protect(outside)
 
 
-def test_lock_creates_encrypted_file(tmp_path: Path) -> None:
+@pytest.mark.repo
+def test_lock_creates_encrypted_file(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
     """Lock a protected file."""
     config = SecureRepoConfig(
         version=CONFIG_VERSION,
@@ -313,10 +337,12 @@ def test_lock_creates_encrypted_file(tmp_path: Path) -> None:
     plaintext = tmp_path / "secret.txt"
     plaintext.write_text("secret", encoding="utf-8")
 
-    repo.lock(
-        plaintext,
-        FakeEncryption(),
+    monkeypatch.setattr(
+        "secrepo.repository.create_backend",
+        lambda config: FakeEncryption(),
     )
+
+    repo.lock(plaintext)
 
     encrypted = tmp_path / "secret.txt.enc"
 
@@ -325,6 +351,7 @@ def test_lock_creates_encrypted_file(tmp_path: Path) -> None:
     assert plaintext.read_text(encoding="utf-8") == "secret"
 
 
+@pytest.mark.repo
 def test_lock_rejects_unprotected_file(tmp_path: Path) -> None:
     """Do not lock an unprotected file."""
     repo = init_repository(tmp_path)
@@ -333,12 +360,10 @@ def test_lock_rejects_unprotected_file(tmp_path: Path) -> None:
     plaintext.write_text("secret", encoding="utf-8")
 
     with pytest.raises(ValueError, match="not protected"):
-        repo.lock(
-            plaintext,
-            FakeEncryption(),
-        )
+        repo.lock(plaintext)
 
 
+@pytest.mark.repo
 def test_lock_rejects_missing_file(tmp_path: Path) -> None:
     """Do not lock a file that does not exist."""
     config = SecureRepoConfig(
@@ -355,14 +380,13 @@ def test_lock_rejects_missing_file(tmp_path: Path) -> None:
     )
 
     with pytest.raises(FileNotFoundError):
-        repo.lock(
-            tmp_path / "secret.txt",
-            FakeEncryption(),
-        )
+        repo.lock(tmp_path / "secret.txt")
 
 
+@pytest.mark.repo
 def test_lock_preserves_plaintext_when_encryption_fails(
     tmp_path: Path,
+    monkeypatch: MonkeyPatch,
 ) -> None:
     """Preserve plaintext if encryption fails."""
     config = SecureRepoConfig(
@@ -381,11 +405,13 @@ def test_lock_preserves_plaintext_when_encryption_fails(
     plaintext = tmp_path / "secret.txt"
     plaintext.write_text("secret", encoding="utf-8")
 
+    monkeypatch.setattr(
+        "secrepo.repository.create_backend",
+        lambda config: FailingEncryption(),
+    )
+
     with pytest.raises(RuntimeError, match="Encryption failed"):
-        repo.lock(
-            plaintext,
-            FailingEncryption(),
-        )
+        repo.lock(plaintext)
 
     assert plaintext.exists()
     assert plaintext.read_text(encoding="utf-8") == "secret"
@@ -393,8 +419,10 @@ def test_lock_preserves_plaintext_when_encryption_fails(
     assert not (tmp_path / "secret.txt.enc.tmp").exists()
 
 
+@pytest.mark.repo
 def test_lock_preserves_existing_encrypted_file_on_failure(
     tmp_path: Path,
+    monkeypatch: MonkeyPatch,
 ) -> None:
     """Preserve the existing encrypted file if locking fails."""
     config = SecureRepoConfig(
@@ -416,16 +444,19 @@ def test_lock_preserves_existing_encrypted_file_on_failure(
     plaintext.write_text("new secret", encoding="utf-8")
     encrypted.write_bytes(b"old encrypted data")
 
+    monkeypatch.setattr(
+        "secrepo.repository.create_backend",
+        lambda config: FailingEncryption(),
+    )
+
     with pytest.raises(RuntimeError, match="Encryption failed"):
-        repo.lock(
-            plaintext,
-            FailingEncryption(),
-        )
+        repo.lock(plaintext)
 
     assert encrypted.read_bytes() == b"old encrypted data"
     assert plaintext.read_text(encoding="utf-8") == "new secret"
 
 
+@pytest.mark.repo
 def test_init_with_encryption_protocol(tmp_path: Path) -> None:
     """Initialize a SecureRepo with a specified encryption protocol."""
     repo = init_repository(
