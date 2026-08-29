@@ -1,6 +1,7 @@
 """Encryption interfaces and backend management for SecureRepo."""
 
 from pathlib import Path
+from typing import Any
 from typing import Dict
 from typing import Protocol
 from typing import Type
@@ -8,8 +9,20 @@ from typing import Type
 from ..config import EncryptionConfig
 
 
+class BackendConfigurationError(ValueError):
+    """Raised when an encryption backend is improperly configured."""
+
+
 class EncryptionBackend(Protocol):
     """Interface for a SecureRepo encryption backend."""
+
+    @classmethod
+    def validate_options(
+        cls,
+        **options: Any,
+    ) -> None:
+        """Validate encryption backend configuration options."""
+        ...
 
     def encrypt(
         self,

@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+from typing import Any
 from typing import Iterable
 from typing import Optional
 
@@ -10,6 +11,7 @@ from pyrage import encrypt
 from pyrage.x25519 import Identity
 from pyrage.x25519 import Recipient
 
+from ..backend import BackendConfigurationError
 from ..backend import EncryptionBackend
 
 IDENTITY_FILENAME = "identity"
@@ -67,18 +69,74 @@ class AgeEncryptionBackend(EncryptionBackend):
     ----------
     recipients:
         Age recipients that can decrypt encrypted files.
-    identities:
-        Age identities used to decrypt encrypted files.
+    identity:
+        Path to the age identity used to decrypt encrypted files.
     """
 
     def __init__(
         self,
-        recipients: Iterable[Recipient],
-        identities: Iterable[Identity],
+        recipients: Iterable[str],
+        identity: Path,
     ) -> None:
         """Initialize an age encryption backend."""
-        self._recipients = tuple(recipients)
-        self._identities = tuple(identities)
+        self.validate_options(
+            recipients=recipients,
+            identity=identity,
+        )
+
+        self._recipients = tuple(
+            Recipient.from_str(recipient) for recipient in recipients
+        )
+        self._identities = (load_identity(identity),)
+
+    @classmethod
+    def validate_options(
+        cls,
+        **options: Any,
+    ) -> None:
+        """Validate age encryption options."""
+        cls._validate_recipients(options.get("recipients"))
+        cls._validate_identity(options.get("identity"))
+
+    @staticmethod
+    def _validate_recipients(
+        recipients: Any,
+    ) -> None:
+        """Validate age recipients."""
+        if not isinstance(recipients, (list, tuple)):
+            raise BackendConfigurationError("'recipients' must be a list.")
+
+        if not recipients:
+            raise BackendConfigurationError("'recipients' must not be empty.")
+
+        if not all(isinstance(recipient, str) for recipient in recipients):
+            raise BackendConfigurationError("All recipients must be strings.")
+
+        for recipient in recipients:
+            try:
+                Recipient.from_str(recipient)
+            except ValueError as error:
+                raise BackendConfigurationError(
+                    f"Invalid age recipient: {recipient}."
+                ) from error
+
+    @staticmethod
+    def _validate_identity(
+        identity: Any,
+    ) -> None:
+        """Validate the age identity."""
+        if not isinstance(identity, Path):
+            raise BackendConfigurationError("'identity' must be a path.")
+
+        if not identity.is_file():
+            raise BackendConfigurationError(f"Age identity does not exist: {identity}")
+
+        try:
+            load_identity(identity)
+        except ValueError as error:
+            raise BackendConfigurationError(
+                f"Invalid age identity: {identity}"
+            ) from error
 
     def encrypt(
         self,

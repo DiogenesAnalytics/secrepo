@@ -1,6 +1,7 @@
 """Tests for encryption backend management."""
 
 from pathlib import Path
+from typing import Any
 from typing import Dict
 from typing import Type
 
@@ -24,6 +25,13 @@ class FakeBackend:
         """Initialize the fake backend."""
         self.key = key
         self.retries = retries
+
+    @classmethod
+    def validate_options(
+        cls,
+        **options: Any,
+    ) -> None:
+        """Validate fake backend options."""
 
     def encrypt(
         self,

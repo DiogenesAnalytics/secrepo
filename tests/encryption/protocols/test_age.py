@@ -42,11 +42,18 @@ def test_age_encrypt_decrypt() -> None:
 def test_age_backend_encrypt_decrypt(tmp_path: Path) -> None:
     """Encrypt and decrypt a file using the age backend."""
     identity = Identity.generate()
-    recipient = identity.to_public()
+    identity_path = tmp_path / "identity"
+
+    save_identity(
+        identity,
+        identity_path,
+    )
+
+    recipient = str(identity.to_public())
 
     backend = AgeEncryptionBackend(
         recipients=[recipient],
-        identities=[identity],
+        identity=identity_path,
     )
 
     plaintext_path = tmp_path / "secret.txt"
