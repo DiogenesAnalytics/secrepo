@@ -9,11 +9,18 @@ from typing import Type
 import pytest
 from pytest import MonkeyPatch
 
+from secrepo.config import CONFIG_VERSION
 from secrepo.config import EncryptionConfig
+from secrepo.config import SecureRepoConfig
+from secrepo.config import load_config
+from secrepo.config import save_config
 from secrepo.encryption.backend import BackendOption
 from secrepo.encryption.backend import EncryptionBackend
 from secrepo.encryption.backend import create_backend
 from secrepo.encryption.backend import register_backends
+from secrepo.encryption.protocols.age import AgeEncryptionBackend
+from secrepo.encryption.protocols.age import generate_identity
+from secrepo.encryption.protocols.age import save_identity
 
 
 class FakeBackend:
@@ -136,3 +143,33 @@ def test_create_backend_rejects_unsupported_protocol(
         match="Unsupported encryption protocol: unknown",
     ):
         create_backend(config)
+
+
+@pytest.mark.enc
+def test_create_backend_from_saved_config(
+    tmp_path: Path,
+) -> None:
+    """Test creating a backend from a saved configuration."""
+    identity = generate_identity()
+    identity_path = tmp_path / "identity"
+    save_identity(identity, identity_path)
+
+    config = SecureRepoConfig(
+        version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol="age",
+            options={
+                "recipients": (str(identity.to_public()),),
+                "identity": identity_path,
+            },
+        ),
+        protected=(),
+    )
+
+    config_path = tmp_path / "protected.yaml"
+    save_config(config, config_path)
+
+    loaded = load_config(config_path)
+    backend = create_backend(loaded.encryption)
+
+    assert isinstance(backend, AgeEncryptionBackend)
