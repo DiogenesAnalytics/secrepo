@@ -5,9 +5,13 @@ from pathlib import Path
 import pytest
 import yaml
 from click.testing import CliRunner
+from pytest import MonkeyPatch
 
 from secrepo.cli import main
+from secrepo.config import CONFIG_FILENAME
 from secrepo.config import DEFAULT_ENCRYPTION_PROTOCOL
+from secrepo.config import SECREPO_DIRNAME
+from secrepo.repository import init_repository
 
 
 @pytest.mark.cli
@@ -135,3 +139,35 @@ def test_cli_init_rejects_unsupported_encryption_protocol(
 
         assert result.exit_code != 0
         assert "Unsupported encryption protocol" in result.output
+
+
+def test_encryption_rejects_invalid_options(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Test that invalid encryption options are not persisted."""
+    runner = CliRunner()
+
+    monkeypatch.chdir(tmp_path)
+
+    init_repository(tmp_path)
+
+    config_path = tmp_path / SECREPO_DIRNAME / CONFIG_FILENAME
+    original_config = config_path.read_text(encoding="utf-8")
+
+    result = runner.invoke(
+        main,
+        [
+            "config",
+            "encryption",
+            "--recipients",
+            "age1invalid",
+            "--identity",
+            str(tmp_path / "missing-identity"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code != 0
+    assert "Invalid age recipient" in result.output
+    assert config_path.read_text(encoding="utf-8") == original_config

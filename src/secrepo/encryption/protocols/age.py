@@ -6,6 +6,7 @@ from typing import Any
 from typing import Iterable
 from typing import Optional
 
+from pyrage import RecipientError
 from pyrage import decrypt
 from pyrage import encrypt
 from pyrage.x25519 import Identity
@@ -130,7 +131,7 @@ class AgeEncryptionBackend(EncryptionBackend):
         for recipient in recipients:
             try:
                 Recipient.from_str(recipient)
-            except ValueError as error:
+            except RecipientError as error:
                 raise BackendConfigurationError(
                     f"Invalid age recipient: {recipient}."
                 ) from error

@@ -90,6 +90,17 @@ def encryption(**options: Any) -> None:
     """Configure encryption."""
     try:
         repo = discover_repository()
+
+        backend = BACKENDS.get(repo.config.encryption.protocol)
+
+        if backend is None:
+            raise ValueError(
+                "Unsupported encryption protocol: "
+                f"{repo.config.encryption.protocol}."
+            )
+
+        backend.validate_options(**options)
+
         config = update_encryption_options(
             repo.config,
             options,
