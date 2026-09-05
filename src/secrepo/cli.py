@@ -163,6 +163,18 @@ class ConfigGroup(click.Group):
 
         return super().get_command(ctx, cmd_name)
 
+    def list_commands(
+        self,
+        ctx: click.Context,
+    ) -> List[str]:
+        """Return available configuration commands."""
+        commands = super().list_commands(ctx)
+
+        if "encryption" not in commands:
+            commands.append("encryption")
+
+        return sorted(commands)
+
 
 def get_click_option_type(
     option_type: str,
