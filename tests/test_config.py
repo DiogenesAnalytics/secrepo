@@ -12,6 +12,7 @@ from secrepo.config import EncryptionConfig
 from secrepo.config import SecureRepoConfig
 from secrepo.config import load_config
 from secrepo.config import save_config
+from secrepo.config import update_encryption_options
 
 
 @pytest.mark.config
@@ -388,3 +389,33 @@ def test_load_config_requires_encryption_protocol_string(
         match="'encryption.protocol' must be a string",
     ):
         load_config(config_path)
+
+
+def test_update_encryption_options() -> None:
+    """Test updating encryption options."""
+    config = SecureRepoConfig(
+        version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol="age",
+            options={"identity": "/old/identity"},
+        ),
+        protected=("secret.txt",),
+    )
+
+    updated = update_encryption_options(
+        config,
+        {
+            "identity": "/new/identity",
+            "recipients": ("age1example",),
+        },
+    )
+
+    assert updated.encryption.protocol == "age"
+    assert updated.encryption.options == {
+        "identity": "/new/identity",
+        "recipients": ("age1example",),
+    }
+    assert updated.protected == ("secret.txt",)
+    assert config.encryption.options == {
+        "identity": "/old/identity",
+    }

@@ -7,7 +7,11 @@ from typing import Optional
 
 import click
 
+from .config import CONFIG_FILENAME
 from .config import DEFAULT_ENCRYPTION_PROTOCOL
+from .config import SECREPO_DIRNAME
+from .config import save_config
+from .config import update_encryption_options
 from .encryption.backend import BACKENDS
 from .repository import discover_repository
 from .repository import init_repository
@@ -84,7 +88,21 @@ def protect(path: Path) -> None:
 
 def encryption(**options: Any) -> None:
     """Configure encryption."""
-    click.echo(options)
+    try:
+        repo = discover_repository()
+        config = update_encryption_options(
+            repo.config,
+            options,
+        )
+
+        save_config(
+            config,
+            repo.root / SECREPO_DIRNAME / CONFIG_FILENAME,
+        )
+    except (FileNotFoundError, ValueError) as error:
+        raise click.ClickException(str(error)) from error
+
+    click.echo("Encryption configuration updated.")
 
 
 def create_encryption_command() -> click.Command:

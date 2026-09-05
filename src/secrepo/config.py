@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from dataclasses import field
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -138,6 +139,16 @@ def load_config(path: Path) -> SecureRepoConfig:
     )
 
 
+def _serialize_options(
+    options: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Serialize configuration options for YAML."""
+    return {
+        key: str(value) if isinstance(value, Path) else value
+        for key, value in options.items()
+    }
+
+
 def save_config(config: SecureRepoConfig, path: Path) -> None:
     """Save a SecureRepo configuration to a YAML file.
 
@@ -153,7 +164,7 @@ def save_config(config: SecureRepoConfig, path: Path) -> None:
         "version": config.version,
         "encryption": {
             "protocol": config.encryption.protocol,
-            "options": config.encryption.options,
+            "options": _serialize_options(config.encryption.options),
         },
         "protected": list(config.protected),
     }
@@ -191,4 +202,33 @@ def add_protected(
         version=config.version,
         encryption=config.encryption,
         protected=(*config.protected, path),
+    )
+
+
+def update_encryption_options(
+    config: SecureRepoConfig,
+    options: Dict[str, Any],
+) -> SecureRepoConfig:
+    """Return a configuration with updated encryption options.
+
+    Parameters
+    ----------
+    config:
+        Existing SecureRepo configuration.
+    options:
+        Encryption options to use.
+
+    Returns
+    -------
+    SecureRepoConfig
+        Configuration containing the updated encryption options.
+    """
+    encryption = replace(
+        config.encryption,
+        options=options,
+    )
+
+    return replace(
+        config,
+        encryption=encryption,
     )
