@@ -147,7 +147,7 @@ def save_config(config: SecureRepoConfig, path: Path) -> None:
         Configuration to save.
 
     path:
-        Destination path for the ``secrepo.yaml`` file.
+        Destination path for the ``protected.yaml`` file.
     """
     data = {
         "version": config.version,

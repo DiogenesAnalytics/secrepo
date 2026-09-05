@@ -1,10 +1,14 @@
 """Command-line interface for SecureRepo."""
 
 from pathlib import Path
+from typing import Any
+from typing import List
+from typing import Optional
 
 import click
 
 from .config import DEFAULT_ENCRYPTION_PROTOCOL
+from .encryption.backend import BACKENDS
 from .repository import discover_repository
 from .repository import init_repository
 
@@ -77,6 +81,81 @@ def protect(path: Path) -> None:
 
     click.echo(f"Protected {path}")
 
+
+def encryption(**options: Any) -> None:
+    """Configure encryption."""
+    click.echo(options)
+
+
+def create_encryption_command() -> click.Command:
+    """Create the encryption configuration command."""
+    try:
+        repo = discover_repository()
+    except FileNotFoundError as error:
+        raise click.ClickException(str(error)) from error
+
+    backend = BACKENDS.get(repo.config.encryption.protocol)
+
+    if backend is None:
+        raise click.ClickException(
+            "Unsupported encryption protocol: " f"{repo.config.encryption.protocol}."
+        )
+
+    params: List[click.Parameter] = [
+        click.Option(
+            param_decls=[f"--{option.name}"],
+            type=get_click_option_type(option.type),
+            required=option.required,
+            multiple=option.multiple,
+            help=option.help,
+        )
+        for option in backend.config_options
+    ]
+
+    return click.Command(
+        name="encryption",
+        callback=encryption,
+        params=params,
+        help=f"Configure {repo.config.encryption.protocol} encryption.",
+    )
+
+
+class ConfigGroup(click.Group):
+    """Click group for SecureRepo configuration commands."""
+
+    def get_command(
+        self,
+        ctx: click.Context,
+        cmd_name: str,
+    ) -> Optional[click.Command]:
+        """Resolve configuration commands dynamically."""
+        if cmd_name == "encryption":
+            return create_encryption_command()
+
+        return super().get_command(ctx, cmd_name)
+
+
+def get_click_option_type(
+    option_type: str,
+) -> click.ParamType[Any]:
+    """Return the Click parameter type for a backend option type."""
+    option_types = {
+        "string": click.STRING,
+        "path": click.Path(path_type=Path),
+    }
+
+    try:
+        return option_types[option_type]
+    except KeyError as error:
+        raise ValueError(f"Unsupported backend option type: {option_type}.") from error
+
+
+@click.group(cls=ConfigGroup)
+def config() -> None:
+    """Configure SecureRepo."""
+
+
+main.add_command(config)
 
 if __name__ == "__main__":
     main()
