@@ -100,6 +100,8 @@ class AgeEncryptionBackend(EncryptionBackend):
             identity=identity,
         )
 
+        identity = self._resolve_identity(identity)
+
         self._recipients = tuple(
             Recipient.from_str(recipient) for recipient in recipients
         )
@@ -113,6 +115,19 @@ class AgeEncryptionBackend(EncryptionBackend):
         """Validate age encryption options."""
         cls._validate_recipients(options.get("recipients"))
         cls._validate_identity(options.get("identity"))
+
+    @staticmethod
+    def _resolve_identity(
+        identity: Any,
+    ) -> Path:
+        """Resolve the age identity path."""
+        if isinstance(identity, str):
+            identity = Path(identity)
+
+        if not isinstance(identity, Path):
+            raise BackendConfigurationError("'identity' must be a path.")
+
+        return identity
 
     @staticmethod
     def _validate_recipients(
@@ -136,13 +151,13 @@ class AgeEncryptionBackend(EncryptionBackend):
                     f"Invalid age recipient: {recipient}."
                 ) from error
 
-    @staticmethod
+    @classmethod
     def _validate_identity(
+        cls,
         identity: Any,
     ) -> None:
         """Validate the age identity."""
-        if not isinstance(identity, Path):
-            raise BackendConfigurationError("'identity' must be a path.")
+        identity = cls._resolve_identity(identity)
 
         if not identity.is_file():
             raise BackendConfigurationError(f"Age identity does not exist: {identity}")
