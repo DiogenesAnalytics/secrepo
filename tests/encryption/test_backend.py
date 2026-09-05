@@ -3,12 +3,14 @@
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import Tuple
 from typing import Type
 
 import pytest
 from pytest import MonkeyPatch
 
 from secrepo.config import EncryptionConfig
+from secrepo.encryption.backend import BackendOption
 from secrepo.encryption.backend import EncryptionBackend
 from secrepo.encryption.backend import create_backend
 from secrepo.encryption.backend import register_backends
@@ -16,6 +18,8 @@ from secrepo.encryption.backend import register_backends
 
 class FakeBackend:
     """Fake encryption backend for testing."""
+
+    config_options: Tuple[BackendOption, ...] = ()
 
     def __init__(
         self,

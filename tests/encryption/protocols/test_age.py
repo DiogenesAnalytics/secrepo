@@ -9,6 +9,7 @@ from pyrage import x25519
 from pyrage.x25519 import Identity
 from pytest import MonkeyPatch
 
+from secrepo.encryption.backend import BackendOption
 from secrepo.encryption.protocols.age import AgeEncryptionBackend
 from secrepo.encryption.protocols.age import default_identity_path
 from secrepo.encryption.protocols.age import generate_identity
@@ -170,3 +171,21 @@ def test_resolve_identity_path() -> None:
 def test_resolve_identity_path_uses_default() -> None:
     """Use the default identity path when none is supplied."""
     assert resolve_identity_path() == default_identity_path()
+
+
+@pytest.mark.enc
+def test_config_options() -> None:
+    """Expose age encryption configuration options."""
+    assert AgeEncryptionBackend.config_options == (
+        BackendOption(
+            name="recipients",
+            type="string",
+            multiple=True,
+            help="Age recipient(s) used for encryption.",
+        ),
+        BackendOption(
+            name="identity",
+            type="path",
+            help="Path to the age identity file.",
+        ),
+    )

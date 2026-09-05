@@ -12,6 +12,7 @@ from pyrage.x25519 import Identity
 from pyrage.x25519 import Recipient
 
 from ..backend import BackendConfigurationError
+from ..backend import BackendOption
 from ..backend import EncryptionBackend
 
 IDENTITY_FILENAME = "identity"
@@ -72,6 +73,20 @@ class AgeEncryptionBackend(EncryptionBackend):
     identity:
         Path to the age identity used to decrypt encrypted files.
     """
+
+    config_options = (
+        BackendOption(
+            name="recipients",
+            type="string",
+            multiple=True,
+            help="Age recipient(s) used for encryption.",
+        ),
+        BackendOption(
+            name="identity",
+            type="path",
+            help="Path to the age identity file.",
+        ),
+    )
 
     def __init__(
         self,
