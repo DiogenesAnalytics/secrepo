@@ -290,3 +290,34 @@ def test_unlock(
     assert secret_path.is_file()
     assert secret_path.read_text(encoding="utf-8") == original_content
     assert repo.encrypted_path(secret_path).is_file()
+
+
+@pytest.mark.cli
+def test_lock_without_encryption_configuration(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Test that lock reports missing encryption configuration."""
+    monkeypatch.chdir(tmp_path)
+
+    init_repository(tmp_path)
+
+    secret_path = tmp_path / "secret.txt"
+    secret_path.write_text(
+        "This is sensitive data.\n",
+        encoding="utf-8",
+    )
+
+    repo = discover_repository(tmp_path)
+    repo = repo.protect(secret_path)
+
+    runner = CliRunner()
+
+    result = runner.invoke(
+        main,
+        ["lock", str(secret_path)],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code != 0
+    assert "Age encryption is not configured: recipients are missing." in result.output

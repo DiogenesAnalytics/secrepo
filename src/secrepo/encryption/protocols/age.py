@@ -134,11 +134,18 @@ class AgeEncryptionBackend(EncryptionBackend):
         recipients: Any,
     ) -> None:
         """Validate age recipients."""
+        if recipients is None:
+            raise BackendConfigurationError(
+                "Age encryption is not configured: recipients are missing."
+            )
+
         if not isinstance(recipients, (list, tuple)):
             raise BackendConfigurationError("'recipients' must be a list.")
 
         if not recipients:
-            raise BackendConfigurationError("'recipients' must not be empty.")
+            raise BackendConfigurationError(
+                "Age encryption is not configured: recipients are missing."
+            )
 
         if not all(isinstance(recipient, str) for recipient in recipients):
             raise BackendConfigurationError("All recipients must be strings.")
@@ -157,6 +164,11 @@ class AgeEncryptionBackend(EncryptionBackend):
         identity: Any,
     ) -> None:
         """Validate the age identity."""
+        if identity is None:
+            raise BackendConfigurationError(
+                "Age encryption is not configured: identity is missing."
+            )
+
         identity = cls._resolve_identity(identity)
 
         if not identity.is_file():

@@ -13,6 +13,7 @@ from .config import SECREPO_DIRNAME
 from .config import save_config
 from .config import update_encryption_options
 from .encryption.backend import BACKENDS
+from .encryption.backend import BackendConfigurationError
 from .repository import discover_repository
 from .repository import init_repository
 
@@ -100,6 +101,10 @@ def lock(path: Path) -> None:
     try:
         repo = discover_repository(path)
         repo.lock(path)
+    except BackendConfigurationError as error:
+        raise click.ClickException(
+            f"{error} Run 'secrepo config encryption' first."
+        ) from error
     except (FileNotFoundError, ValueError) as error:
         raise click.ClickException(str(error)) from error
 
@@ -120,6 +125,10 @@ def unlock(path: Path) -> None:
     try:
         repo = discover_repository(path)
         repo.unlock(path)
+    except BackendConfigurationError as error:
+        raise click.ClickException(
+            f"{error} Run 'secrepo config encryption' first."
+        ) from error
     except (FileNotFoundError, ValueError) as error:
         raise click.ClickException(str(error)) from error
 
