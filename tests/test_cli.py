@@ -9,8 +9,15 @@ from pytest import MonkeyPatch
 
 from secrepo.cli import main
 from secrepo.config import CONFIG_FILENAME
+from secrepo.config import CONFIG_VERSION
 from secrepo.config import DEFAULT_ENCRYPTION_PROTOCOL
 from secrepo.config import SECREPO_DIRNAME
+from secrepo.config import EncryptionConfig
+from secrepo.config import SecureRepoConfig
+from secrepo.config import save_config
+from secrepo.encryption.protocols.age import generate_identity
+from secrepo.encryption.protocols.age import save_identity
+from secrepo.repository import discover_repository
 from secrepo.repository import init_repository
 
 
@@ -171,3 +178,56 @@ def test_encryption_rejects_invalid_options(
     assert result.exit_code != 0
     assert "Invalid age recipient" in result.output
     assert config_path.read_text(encoding="utf-8") == original_config
+
+
+@pytest.mark.cli
+def test_lock(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Test the lock command."""
+    monkeypatch.chdir(tmp_path)
+
+    init_repository(tmp_path)
+
+    identity = generate_identity()
+    identity_path = tmp_path / "identity"
+    save_identity(identity, identity_path)
+
+    config = SecureRepoConfig(
+        version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol="age",
+            options={
+                "recipients": (str(identity.to_public()),),
+                "identity": identity_path,
+            },
+        ),
+        protected=(),
+    )
+
+    save_config(
+        config,
+        tmp_path / SECREPO_DIRNAME / CONFIG_FILENAME,
+    )
+
+    secret_path = tmp_path / "secret.txt"
+    secret_path.write_text(
+        "This is sensitive data.\n",
+        encoding="utf-8",
+    )
+
+    repo = discover_repository(tmp_path)
+    repo.protect(secret_path)
+
+    runner = CliRunner()
+
+    result = runner.invoke(
+        main,
+        ["lock", str(secret_path)],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert f"Locked {secret_path}" in result.output
+    assert repo.encrypted_path(secret_path).is_file()

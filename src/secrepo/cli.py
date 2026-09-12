@@ -86,6 +86,26 @@ def protect(path: Path) -> None:
     click.echo(f"Protected {path}")
 
 
+@main.command()
+@click.argument(
+    "path",
+    type=click.Path(
+        path_type=Path,
+        file_okay=True,
+        dir_okay=False,
+    ),
+)
+def lock(path: Path) -> None:
+    """Lock a protected file."""
+    try:
+        repo = discover_repository(path)
+        repo.lock(path)
+    except (FileNotFoundError, ValueError) as error:
+        raise click.ClickException(str(error)) from error
+
+    click.echo(f"Locked {path}")
+
+
 def encryption(**options: Any) -> None:
     """Configure encryption."""
     try:
