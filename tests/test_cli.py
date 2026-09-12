@@ -231,3 +231,62 @@ def test_lock(
     assert result.exit_code == 0
     assert f"Locked {secret_path}" in result.output
     assert repo.encrypted_path(secret_path).is_file()
+
+
+@pytest.mark.cli
+def test_unlock(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Test the unlock command."""
+    monkeypatch.chdir(tmp_path)
+
+    init_repository(tmp_path)
+
+    identity = generate_identity()
+    identity_path = tmp_path / "identity"
+    save_identity(identity, identity_path)
+
+    config = SecureRepoConfig(
+        version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol="age",
+            options={
+                "recipients": (str(identity.to_public()),),
+                "identity": identity_path,
+            },
+        ),
+        protected=(),
+    )
+
+    save_config(
+        config,
+        tmp_path / SECREPO_DIRNAME / CONFIG_FILENAME,
+    )
+
+    secret_path = tmp_path / "secret.txt"
+    original_content = "This is sensitive data.\n"
+    secret_path.write_text(
+        original_content,
+        encoding="utf-8",
+    )
+
+    repo = discover_repository(tmp_path)
+    repo = repo.protect(secret_path)
+
+    repo.lock(secret_path)
+    secret_path.unlink()
+
+    runner = CliRunner()
+
+    result = runner.invoke(
+        main,
+        ["unlock", str(secret_path)],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert f"Unlocked {secret_path}" in result.output
+    assert secret_path.is_file()
+    assert secret_path.read_text(encoding="utf-8") == original_content
+    assert repo.encrypted_path(secret_path).is_file()
