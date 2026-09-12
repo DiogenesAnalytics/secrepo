@@ -522,3 +522,50 @@ def test_lock_with_configured_age_backend(
     )
 
     assert decrypted_path.read_text(encoding="utf-8") == original_content
+
+
+@pytest.mark.repo
+def test_unlock_with_configured_age_backend(
+    tmp_path: Path,
+) -> None:
+    """Test unlocking a protected file with a configured age backend."""
+    repo = init_repository(tmp_path)
+
+    identity = generate_identity()
+    identity_path = tmp_path / "identity"
+    save_identity(identity, identity_path)
+
+    config = SecureRepoConfig(
+        version=CONFIG_VERSION,
+        encryption=EncryptionConfig(
+            protocol="age",
+            options={
+                "recipients": (str(identity.to_public()),),
+                "identity": identity_path,
+            },
+        ),
+        protected=(),
+    )
+
+    save_config(
+        config,
+        tmp_path / SECREPO_DIRNAME / CONFIG_FILENAME,
+    )
+
+    secret_path = tmp_path / "secret.txt"
+    original_content = "This is sensitive data.\n"
+    secret_path.write_text(original_content, encoding="utf-8")
+
+    repo = discover_repository(tmp_path)
+    repo = repo.protect(secret_path)
+
+    repo.lock(secret_path)
+
+    secret_path.unlink()
+
+    repo = discover_repository(tmp_path)
+    repo.unlock(secret_path)
+
+    assert secret_path.is_file()
+    assert secret_path.read_text(encoding="utf-8") == original_content
+    assert repo.encrypted_path(secret_path).is_file()

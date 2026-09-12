@@ -188,6 +188,60 @@ class SecureRepo:
             temporary_path.unlink(missing_ok=True)
             raise
 
+    def unlock(
+        self,
+        path: Path,
+    ) -> None:
+        """Decrypt a protected file.
+
+        The encrypted file is never removed.
+
+        Parameters
+        ----------
+        path:
+            Path to the protected plaintext file.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the encrypted file does not exist.
+        ValueError
+            If the file is not protected or is outside the repository.
+        """
+        path = path.resolve()
+
+        try:
+            relative_path = path.relative_to(self.root)
+        except ValueError as error:
+            raise ValueError(f"Path is outside the repository: {path}") from error
+
+        relative_path_string = relative_path.as_posix()
+
+        if relative_path_string not in self.config.protected:
+            raise ValueError(f"File is not protected: {relative_path_string}")
+
+        encrypted_path = self.encrypted_path(path)
+
+        if not encrypted_path.is_file():
+            raise FileNotFoundError(f"Encrypted file does not exist: {encrypted_path}")
+
+        temporary_path = path.with_suffix(path.suffix + ".tmp")
+
+        try:
+            self.encryption_backend.decrypt(
+                encrypted_path,
+                temporary_path,
+            )
+
+            if not temporary_path.is_file():
+                raise RuntimeError("Decryption backend did not create an output file.")
+
+            temporary_path.replace(path)
+
+        except Exception:
+            temporary_path.unlink(missing_ok=True)
+            raise
+
 
 def hash_file(path: Path) -> str:
     """Return the SHA-256 hash of a file.
