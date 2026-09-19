@@ -16,6 +16,7 @@ from secrepo.config import EncryptionConfig
 from secrepo.config import SecureRepoConfig
 from secrepo.config import save_config
 from secrepo.encryption.protocols.age import generate_identity
+from secrepo.encryption.protocols.age import initialize_identity
 from secrepo.encryption.protocols.age import save_identity
 from secrepo.repository import discover_repository
 from secrepo.repository import init_repository
@@ -322,3 +323,69 @@ def test_lock_without_encryption_configuration(
 
     assert result.exit_code != 0
     assert "Age encryption is not configured: recipients are missing." in result.output
+
+
+@pytest.mark.cli
+def test_encryption_init(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Initialize encryption for a repository."""
+    init_repository(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    identity_path = tmp_path / "identity"
+
+    monkeypatch.setattr(
+        "secrepo.repository.default_identity_path",
+        lambda: identity_path,
+    )
+
+    runner = CliRunner()
+
+    result = runner.invoke(
+        main,
+        ["encryption", "init"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert result.output == "Encryption initialized.\n"
+
+    repo = discover_repository(tmp_path)
+
+    assert repo.config.encryption.protocol == "age"
+    assert repo.config.encryption.options["recipients"]
+    assert repo.config.encryption.options["identity"] == str(identity_path)
+
+
+@pytest.mark.cli
+def test_encryption_init_existing_identity(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Report an error when the age identity already exists."""
+    init_repository(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    identity_path = tmp_path / "identity"
+
+    monkeypatch.setattr(
+        "secrepo.repository.default_identity_path",
+        lambda: identity_path,
+    )
+
+    initialize_identity(identity_path)
+
+    runner = CliRunner()
+
+    result = runner.invoke(
+        main,
+        ["encryption", "init"],
+    )
+
+    assert result.exit_code != 0
+    assert (
+        f"Error: Age identity already exists: {identity_path}"
+        " Encryption has already been initialized.\n" == result.output
+    )

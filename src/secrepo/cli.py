@@ -135,7 +135,7 @@ def unlock(path: Path) -> None:
     click.echo(f"Unlocked {path}")
 
 
-def encryption(**options: Any) -> None:
+def configure_encryption(**options: Any) -> None:
     """Configure encryption."""
     try:
         repo = discover_repository()
@@ -192,7 +192,7 @@ def create_encryption_command() -> click.Command:
 
     return click.Command(
         name="encryption",
-        callback=encryption,
+        callback=configure_encryption,
         params=params,
         help=f"Configure {repo.config.encryption.protocol} encryption.",
     )
@@ -246,6 +246,28 @@ def config() -> None:
 
 
 main.add_command(config)
+
+
+@main.group()
+def encryption() -> None:
+    """Manage encryption."""
+
+
+@encryption.command(name="init")
+def encryption_init() -> None:
+    """Initialize age encryption for the repository."""
+    try:
+        repo = discover_repository()
+        repo.initialize_encryption()
+    except FileExistsError as error:
+        raise click.ClickException(
+            f"{error} Encryption has already been initialized."
+        ) from error
+    except FileNotFoundError as error:
+        raise click.ClickException(str(error)) from error
+
+    click.echo("Encryption initialized.")
+
 
 if __name__ == "__main__":
     main()
