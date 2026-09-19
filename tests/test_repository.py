@@ -13,6 +13,8 @@ from secrepo.config import EncryptionConfig
 from secrepo.config import SecureRepoConfig
 from secrepo.config import save_config
 from secrepo.encryption.protocols.age import generate_identity
+from secrepo.encryption.protocols.age import initialize_identity
+from secrepo.encryption.protocols.age import load_identity
 from secrepo.encryption.protocols.age import save_identity
 from secrepo.repository import FileState
 from secrepo.repository import SecureRepo
@@ -573,3 +575,77 @@ def test_unlock_with_configured_age_backend(
     assert secret_path.is_file()
     assert secret_path.read_text(encoding="utf-8") == original_content
     assert repo.encrypted_path(secret_path).is_file()
+
+
+def test_initialize_encryption(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Initialize age encryption and save the configuration."""
+    repo = init_repository(tmp_path)
+
+    identity_path = tmp_path / "identity"
+    monkeypatch.setattr(
+        "secrepo.repository.default_identity_path",
+        lambda: identity_path,
+    )
+
+    repo.initialize_encryption()
+
+    assert identity_path.is_file()
+
+    config = discover_repository(tmp_path).config
+
+    assert config.encryption.protocol == "age"
+    assert config.encryption.options["recipients"] == [
+        str(load_identity(identity_path).to_public())
+    ]
+    assert config.encryption.options["identity"] == str(identity_path)
+
+
+def test_initialize_encryption_does_not_overwrite_identity(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Refuse to overwrite an existing age identity."""
+    repo = init_repository(tmp_path)
+
+    identity_path = tmp_path / "identity"
+    monkeypatch.setattr(
+        "secrepo.repository.default_identity_path",
+        lambda: identity_path,
+    )
+
+    initialize_identity(identity_path)
+    original_identity = identity_path.read_text(encoding="utf-8")
+
+    with pytest.raises(FileExistsError):
+        repo.initialize_encryption()
+
+    assert identity_path.read_text(encoding="utf-8") == original_identity
+
+
+def test_initialize_encryption_preserves_protected_paths(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Preserve existing protected paths when configuring encryption."""
+    repo = init_repository(tmp_path)
+
+    secret_path = tmp_path / "secret.txt"
+    secret_path.write_text("secret", encoding="utf-8")
+    repo.protect(secret_path)
+
+    identity_path = tmp_path / "identity"
+    monkeypatch.setattr(
+        "secrepo.repository.default_identity_path",
+        lambda: identity_path,
+    )
+
+    repo = discover_repository(tmp_path)
+    repo.initialize_encryption()
+
+    config = discover_repository(tmp_path).config
+
+    assert config.protected == ("secret.txt",)
+    assert config.encryption.protocol == "age"

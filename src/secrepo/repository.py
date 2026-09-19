@@ -15,9 +15,12 @@ from .config import SecureRepoConfig
 from .config import add_protected
 from .config import load_config
 from .config import save_config
+from .config import update_encryption_options
 from .config import validate_encryption_protocol
 from .encryption import EncryptionBackend
 from .encryption import create_backend
+from .encryption.protocols.age import default_identity_path
+from .encryption.protocols.age import initialize_identity
 
 
 class FileState(Enum):
@@ -47,6 +50,30 @@ class SecureRepo:
     def encryption_backend(self) -> EncryptionBackend:
         """Return the encryption backend configured for this repository."""
         return create_backend(self.config.encryption)
+
+    def initialize_encryption(self) -> None:
+        """Initialize encryption for the repository.
+
+        Raises
+        ------
+        FileExistsError
+            If the age identity already exists.
+        """
+        identity_path = default_identity_path()
+        identity = initialize_identity(identity_path)
+
+        config = update_encryption_options(
+            self.config,
+            {
+                "recipients": [str(identity.to_public())],
+                "identity": identity_path,
+            },
+        )
+
+        save_config(
+            config,
+            self.root / SECREPO_DIRNAME / CONFIG_FILENAME,
+        )
 
     def protected_paths(self) -> tuple[Path, ...]:
         """Return protected paths relative to the repository root."""
