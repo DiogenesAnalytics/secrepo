@@ -261,7 +261,8 @@ def test_protect(tmp_path: Path) -> None:
     path.parent.mkdir()
     path.write_text("secret", encoding="utf-8")
 
-    repo = repo.protect(path)
+    repo.protect(path)
+    repo = discover_repository(tmp_path)
 
     assert repo.config.protected == ("data/secret.csv",)
 
@@ -289,8 +290,9 @@ def test_protect_does_not_duplicate_path(tmp_path: Path) -> None:
     path = tmp_path / "secret.csv"
     path.write_text("secret", encoding="utf-8")
 
-    repo = repo.protect(path)
-    repo = repo.protect(path)
+    repo.protect(path)
+    repo.protect(path)
+    repo = discover_repository(tmp_path)
 
     assert repo.config.protected == ("secret.csv",)
 
@@ -503,7 +505,8 @@ def test_lock_with_configured_age_backend(
     secret_path.write_text(original_content, encoding="utf-8")
 
     repo = discover_repository(tmp_path)
-    repo = repo.protect(secret_path)
+    repo.protect(secret_path)
+    repo = discover_repository(tmp_path)
 
     repo.lock(secret_path)
 
@@ -557,7 +560,8 @@ def test_unlock_with_configured_age_backend(
     secret_path.write_text(original_content, encoding="utf-8")
 
     repo = discover_repository(tmp_path)
-    repo = repo.protect(secret_path)
+    repo.protect(secret_path)
+    repo = discover_repository(tmp_path)
 
     repo.lock(secret_path)
 

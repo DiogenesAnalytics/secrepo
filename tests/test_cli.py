@@ -272,7 +272,8 @@ def test_unlock(
     )
 
     repo = discover_repository(tmp_path)
-    repo = repo.protect(secret_path)
+    repo.protect(secret_path)
+    repo = discover_repository(tmp_path)
 
     repo.lock(secret_path)
     secret_path.unlink()
@@ -309,7 +310,7 @@ def test_lock_without_encryption_configuration(
     )
 
     repo = discover_repository(tmp_path)
-    repo = repo.protect(secret_path)
+    repo.protect(secret_path)
 
     runner = CliRunner()
 

@@ -90,18 +90,13 @@ class SecureRepo:
             Path(path): self.file_state(Path(path)) for path in self.config.protected
         }
 
-    def protect(self, path: Path) -> "SecureRepo":
+    def protect(self, path: Path) -> None:
         """Protect a file in the repository.
 
         Parameters
         ----------
         path:
             Path to the file, relative to the repository root.
-
-        Returns
-        -------
-        SecureRepo
-            Updated repository.
 
         Raises
         ------
@@ -128,11 +123,6 @@ class SecureRepo:
         save_config(
             config,
             self.root / SECREPO_DIRNAME / CONFIG_FILENAME,
-        )
-
-        return SecureRepo(
-            root=self.root,
-            config=config,
         )
 
     def lock(
