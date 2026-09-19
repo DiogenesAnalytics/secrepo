@@ -13,6 +13,7 @@ from secrepo.encryption.backend import BackendOption
 from secrepo.encryption.protocols.age import AgeEncryptionBackend
 from secrepo.encryption.protocols.age import default_identity_path
 from secrepo.encryption.protocols.age import generate_identity
+from secrepo.encryption.protocols.age import initialize_identity
 from secrepo.encryption.protocols.age import load_identity
 from secrepo.encryption.protocols.age import resolve_identity_path
 from secrepo.encryption.protocols.age import save_identity
@@ -189,3 +190,29 @@ def test_config_options() -> None:
             help="Path to the age identity file.",
         ),
     )
+
+
+@pytest.mark.enc
+def test_initialize_identity(tmp_path: Path) -> None:
+    """Test that an age identity is generated and saved."""
+    identity_path = tmp_path / "nested" / "age" / "identity"
+
+    identity = initialize_identity(identity_path)
+
+    assert identity_path.is_file()
+    assert str(load_identity(identity_path).to_public()) == str(identity.to_public())
+
+
+@pytest.mark.enc
+def test_initialize_identity_refuses_existing_identity(
+    tmp_path: Path,
+) -> None:
+    """Test that an existing age identity is not overwritten."""
+    identity_path = tmp_path / "identity"
+
+    identity = initialize_identity(identity_path)
+
+    with pytest.raises(FileExistsError):
+        initialize_identity(identity_path)
+
+    assert str(load_identity(identity_path).to_public()) == str(identity.to_public())
